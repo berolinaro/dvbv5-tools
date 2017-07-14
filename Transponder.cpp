@@ -17,6 +17,10 @@ uint32_t Transponder::getParameter(uint32_t p) const {
 	return 0;
 }
 
+std::string Transponder::toString() const {
+	return std::string("G") + "\t" + std::to_string(frequency());
+}
+
 DVBCTransponder::DVBCTransponder(uint32_t frequency, uint32_t srate, fe_modulation modulation, fe_code_rate fec, fe_spectral_inversion inversion):Transponder() {
 	dtv_property *prop=new dtv_property[7];
 	prop[0].cmd = DTV_FREQUENCY;
@@ -43,4 +47,8 @@ DVBCTransponder::~DVBCTransponder() {
 
 DVBCTransponder::operator dtv_properties const *() const {
 	return &_props;
+}
+
+std::string DVBCTransponder::toString() const {
+	return std::string("C") + "\t" + std::to_string(frequency()) + "\t" + std::to_string(symbolRate()) + "\t" + std::to_string(modulation()) + "\t" + std::to_string(fec()) + "\t" + std::to_string(inversion());
 }

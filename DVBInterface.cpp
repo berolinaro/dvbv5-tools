@@ -151,7 +151,10 @@ void DVBInterface::scanTransponder() {
 		p.dump(std::cerr);
 
 	ServiceDescriptionTables *sdts = DVBTables<ServiceDescriptionTable>::read<ServiceDescriptionTables>(_dmxFd);
-	sdts->dump();
+	std::vector<Service> services=sdts->services();
+	for(auto s: services) {
+		std::cerr << s.name() << std::endl;
+	}
 }
 
 void DVBInterface::scan() {

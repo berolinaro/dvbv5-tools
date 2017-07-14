@@ -143,6 +143,7 @@ protected:
 	int _dmxFd;
 	int _frontendFd;
 	dvb_frontend_info _feInfo;
+	Transponder *_currentTransponder;
 };
 
 class DVBInterfaces:public std::vector<DVBInterface> {
