@@ -130,6 +130,9 @@ void DVBInterface::scanTransponder() {
 	if(_dmxFd < 0)
 		return;
 	ProgramAssociationTables *pats = DVBTables<ProgramAssociationTable>::read<ProgramAssociationTables>(_dmxFd);
+	if(!pats) // Bogus transponder didn't even send a PAT on time
+		return;
+
 	cerr << "Transport stream ID " << (*pats->begin())->number() << std::endl;
 
 	std::map<uint16_t,uint16_t> PMTPids = pats->pids();
