@@ -4,6 +4,7 @@
 
 extern "C" {
 #include <ctype.h>
+#include <sys/poll.h>
 }
 
 static constexpr uint32_t CRC32Table[] = {
@@ -91,6 +92,13 @@ namespace Util {
 			gettimeofday(&tv, nullptr);
 		} while(tv.tv_sec < end.tv_sec || (tv.tv_sec == end.tv_sec && tv.tv_usec < end.tv_usec));
 		return false;
+	}
+
+	bool waitForData(int fd, uint32_t timeout) {
+		pollfd p;
+		p.fd = fd;
+		p.events = POLLIN;
+		return poll(&p, 1, timeout);
 	}
 
 	void hexdump(unsigned char const * const data, size_t size, std::ostream &where, std::string const &indent, uint8_t bytesPerRow) {

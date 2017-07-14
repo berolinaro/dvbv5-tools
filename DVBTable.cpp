@@ -30,6 +30,10 @@ DVBTable *DVBTable::read(int fd) {
 	case NetworkInformation:
 	case NetworkInformationOther:
 		return new NetworkInformationTable(t);
+	case Invalid:
+		cerr << "Received Invalid table, sending nullptr" << endl;
+		delete t;
+		return nullptr;
 	default:
 		std::cerr << "Received table with unknown id " << static_cast<int>(t->tableId()) << std::endl;
 	}
@@ -40,6 +44,10 @@ DVBTable::DVBTable(int fd) {
 	ssize_t count;
 	unsigned char header[8];
 	do {
+		if(!Util::waitForData(fd)) {
+			_tableId = Invalid;
+			return;
+		}
 		count = ::read(fd, header, sizeof(header));
 		if(count != sizeof(header)) {
 			std::cerr << "Incomplete packet, got " << count << ", expected at least " << sizeof(header) << " from " << fd << std::endl;

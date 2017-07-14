@@ -16,6 +16,7 @@ namespace Util {
 	 * @return @c true if the condition became true, @c false if the timeout was hit
 	 */
 	bool waitFor(uint32_t timeout, std::function<bool ()> condition, timespec delay = { 0, 1000000 });
+	bool waitForData(int fd, uint32_t timeout=5000);
 	/**
 	 * Generate a hex dump of data
 	 * @param data Data to dump

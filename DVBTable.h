@@ -53,7 +53,8 @@ enum DVBTableIDs {
 	/// ETSI EN 301 192 [4]
 	MPE_FEC = 0x78,
 	/// ETSI TS 102 323 [13]
-	ResolutionProvider = 0x79
+	ResolutionProvider = 0x79,
+	Invalid = 0xff // 0xff is "reserved" and not "for future use", so we use it to signal timeouts
 };
 
 class DVBTable {
@@ -110,12 +111,21 @@ public:
 		DT *ret = new DT;
 		ioctl(fd, DMX_SET_FILTER, &f);
 		while(!ret->complete()) {
-			typename DT::TableType *d=dynamic_cast<typename DT::TableType*>(DVBTable::read(fd));
-			if(d) {
-				ret->add(d);
-			} else {
-				delete d;
+			DVBTable *t = DVBTable::read(fd);
+			if(!t) {
+				// timeout
+				ioctl(fd, DMX_STOP);
+				return nullptr;
 			}
+			typename DT::TableType *d=dynamic_cast<typename DT::TableType*>(t);
+			if(d && d->tableId() == Invalid) { // Timeout -- probably the table just doesn't exist
+				std::cerr << "Got invalid table!" << std::endl;
+				break;
+			}
+			if(d)
+				ret->add(d);
+			else
+				delete d;
 		}
 		ioctl(fd, DMX_STOP);
 		return ret;

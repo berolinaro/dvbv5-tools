@@ -126,7 +126,7 @@ using namespace std;
 
 void DVBInterface::scanTransponder() {
 	if(_dmxFd < 0)
-		_dmxFd = open("demux0", O_RDWR);
+		_dmxFd = open("demux0", O_RDWR|O_NONBLOCK);
 	if(_dmxFd < 0)
 		return;
 	ProgramAssociationTables *pats = DVBTables<ProgramAssociationTable>::read<ProgramAssociationTables>(_dmxFd);
@@ -138,23 +138,22 @@ void DVBInterface::scanTransponder() {
 	for(auto p: PMTPids) {
 		if(p.first == 0) continue;
 		ProgramMapTables *pmts = DVBTables<ProgramMapTable>::read<ProgramMapTables>(_dmxFd, p.second);
+		if(!pmts) // Dropped w/ timeout or other error
+			continue;
 		programs.push_back(Program(*pmts));
 		delete pmts;
 	}
 
-	cerr << "Dumping programs" << endl;
 	for(auto p: programs)
 		p.dump(std::cerr);
-	cerr << "Done dumping programs" << endl;
 
-	cerr << "Looking at SDT" << endl;
 	ServiceDescriptionTables *sdts = DVBTables<ServiceDescriptionTable>::read<ServiceDescriptionTables>(_dmxFd);
 	sdts->dump();
 }
 
 void DVBInterface::scan() {
 	if(_dmxFd < 0)
-		_dmxFd = open("demux0", O_RDWR);
+		_dmxFd = open("demux0", O_RDWR|O_NONBLOCK);
 	if(_dmxFd < 0)
 		return;
 	NetworkInformationTables *nits = DVBTables<NetworkInformationTable>::read<NetworkInformationTables>(_dmxFd);
@@ -171,7 +170,7 @@ void DVBInterface::scan() {
 }
 
 std::vector<Transponder*> DVBInterface::scanTransponders() {
-	return DVBTables<NetworkInformationTable>::read<NetworkInformationTables>(FD(open("demux0", O_RDWR)))->transponders();
+	return DVBTables<NetworkInformationTable>::read<NetworkInformationTables>(FD(open("demux0", O_RDWR|O_NONBLOCK)))->transponders();
 }
 
 /* More Diseqc bits not yet supported (no satellite dish to test with...):
