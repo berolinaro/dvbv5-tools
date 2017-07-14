@@ -3,6 +3,7 @@
 #include "ProgramAssociationTable.h"
 #include "ProgramMapTable.h"
 #include "ServiceDescriptionTable.h"
+#include "NetworkInformationTable.h"
 #include "Util.h"
 #include <cstring>
 
@@ -14,7 +15,7 @@ extern "C" {
 #include <linux/dvb/dmx.h>
 }
 
-DVBInterface::DVBInterface(int num, std::string const devPath):_frontendFd(-1) {
+DVBInterface::DVBInterface(int num, std::string const devPath):_frontendFd(-1),_dmxFd(-1) {
 	_devPath = devPath;
 	if(_devPath[_devPath.length()-1] != '/')
 		_devPath += '/';
@@ -22,14 +23,10 @@ DVBInterface::DVBInterface(int num, std::string const devPath):_frontendFd(-1) {
 
 	memset(&_feInfo, 0, sizeof(dvb_frontend_info));
 
-	FD fd = open("frontend0");
+	FD fd = open("frontend0", O_RDWR);
 	if(fd >= 0) {
 		ioctl(fd, FE_GET_INFO, &_feInfo);
 	}
-}
-
-FD DVBInterface::open(std::string const &dev, int mode) const {
-	return FD(_devPath + dev, mode);
 }
 
 std::string DVBInterface::FEC() const {
@@ -77,11 +74,15 @@ std::string DVBInterface::QAM() const {
 std::bitset<6> DVBInterface::status() const {
 	fe_status s;
 
-	int fd = (_frontendFd >= 0) ? _frontendFd : open("frontend0");
+	int fd = (_frontendFd >= 0) ? _frontendFd : open("frontend0", O_RDONLY);
 	if(fd >= 0)
 		ioctl(fd, FE_READ_STATUS, &s);
 
 	return s;
+}
+
+int DVBInterface::open(std::string const &dev, int mode) const {
+	return ::open((_devPath + dev).c_str(), mode);
 }
 
 bool DVBInterface::resetDiseqcOverload() const {
@@ -94,7 +95,7 @@ bool DVBInterface::resetDiseqcOverload() const {
 bool DVBInterface::tune(Transponder const &t, uint32_t timeout) {
 	dtv_properties const *p = t;
 	if(_frontendFd < 0)
-		_frontendFd = ::open((_devPath + "frontend0").c_str(), O_RDWR);
+		_frontendFd = open("frontend0", O_RDWR);
 	if(_frontendFd < 0)
 		return false;
 
@@ -112,6 +113,10 @@ void DVBInterface::close() {
 		::close(_frontendFd);
 		_frontendFd = -1;
 	}
+	if(_dmxFd >= 0) {
+		::close(_dmxFd);
+		_dmxFd = -1;
+	}
 }
 
 #include <iostream>
@@ -119,11 +124,12 @@ using namespace std;
 #include <errno.h>
 #include <cassert>
 
-void DVBInterface::scan() {
-	FD dmxFd = open("demux0", O_RDWR);
-	if(dmxFd<0)
+void DVBInterface::scanTransponder() {
+	if(_dmxFd < 0)
+		_dmxFd = open("demux0", O_RDWR);
+	if(_dmxFd < 0)
 		return;
-	ProgramAssociationTables *pats = DVBTables<ProgramAssociationTable>::read<ProgramAssociationTables>(dmxFd);
+	ProgramAssociationTables *pats = DVBTables<ProgramAssociationTable>::read<ProgramAssociationTables>(_dmxFd);
 	cerr << "Transport stream ID " << (*pats->begin())->number() << std::endl;
 
 	std::map<uint16_t,uint16_t> PMTPids = pats->pids();
@@ -131,16 +137,41 @@ void DVBInterface::scan() {
 	std::vector<Program> programs;
 	for(auto p: PMTPids) {
 		if(p.first == 0) continue;
-		ProgramMapTables *pmts = DVBTables<ProgramMapTable>::read<ProgramMapTables>(dmxFd, p.second);
+		ProgramMapTables *pmts = DVBTables<ProgramMapTable>::read<ProgramMapTables>(_dmxFd, p.second);
 		programs.push_back(Program(*pmts));
 		delete pmts;
 	}
 
+	cerr << "Dumping programs" << endl;
 	for(auto p: programs)
 		p.dump(std::cerr);
+	cerr << "Done dumping programs" << endl;
 
-	ServiceDescriptionTables *sdts = DVBTables<ServiceDescriptionTable>::read<ServiceDescriptionTables>(dmxFd);
+	cerr << "Looking at SDT" << endl;
+	ServiceDescriptionTables *sdts = DVBTables<ServiceDescriptionTable>::read<ServiceDescriptionTables>(_dmxFd);
 	sdts->dump();
+}
+
+void DVBInterface::scan() {
+	if(_dmxFd < 0)
+		_dmxFd = open("demux0", O_RDWR);
+	if(_dmxFd < 0)
+		return;
+	NetworkInformationTables *nits = DVBTables<NetworkInformationTable>::read<NetworkInformationTables>(_dmxFd);
+	std::cerr << "Dumping NITs" << std::endl;
+	nits->dump();
+	std::cerr << "Done dumping NITs..." << std::endl;
+	std::vector<Transponder*> t=nits->transponders();
+	for(auto tp: t) {
+		if(tune(tp, 5000000))
+			std::cerr << "Found transponder at " << tp->frequency() << std::endl;
+		else
+			std::cerr << "Transponder at " << tp->frequency() << " is listed in NIT, but doesn't seem to exist" << std::endl;
+	}
+}
+
+std::vector<Transponder*> DVBInterface::scanTransponders() {
+	return DVBTables<NetworkInformationTable>::read<NetworkInformationTables>(FD(open("demux0", O_RDWR)))->transponders();
 }
 
 /* More Diseqc bits not yet supported (no satellite dish to test with...):

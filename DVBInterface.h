@@ -129,13 +129,18 @@ public:
 	bool needsReInit() const { return status().test(ReInit); }
 	bool resetDiseqcOverload() const;
 	bool tune(Transponder const &t, uint32_t timeout = 0);
+	bool tune(Transponder const * const t, uint32_t timeout = 0) { return tune(*t, timeout); }
 	void close();
 
+	std::vector<Transponder*> scanTransponders();
+
 	void scan();
-private:
-	FD open(std::string const &dev, int mode = O_RDONLY) const;
+	void scanTransponder();
+protected:
+	int open(std::string const &dev, int mode = O_RDONLY) const;
 protected:
 	std::string _devPath;
+	int _dmxFd;
 	int _frontendFd;
 	dvb_frontend_info _feInfo;
 };

@@ -1,0 +1,30 @@
+#pragma once
+
+enum ServiceType {
+	TV = 0x01,
+	Radio = 0x02,
+	Teletext = 0x03,
+	NVODReference = 0x04,
+	NVODTimeShifted = 0x05,
+	Mosaic = 0x06,
+	FMRadio = 0x07,
+	SRM = 0x08,
+	ACRadio = 0x0a,
+	AVCMosaic = 0x0b,
+	DataBroadcast = 0x0c,
+	CI = 0x0d,
+	RCSMap = 0x0e,
+	RCSFLS = 0x0f,
+	MHP = 0x10,
+	MPEG2HDTV = 0x11,
+	H264TV = 0x16,
+	H264NVODTimeShifted = 0x17,
+	H264NVODReference = 0x18,
+	H264HDTV = 0x19,
+	H264HDNVODTimeShifted = 0x1a,
+	H264HDNVODReference = 0x1b,
+	H2643DHDTV = 0x1c,
+	H2643DHDNVODTimeShifted = 0x1d,
+	H2643DHDNVODReference = 0x1e,
+	HEVCTV = 0x1f
+};

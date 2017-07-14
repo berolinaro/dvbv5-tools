@@ -2,6 +2,7 @@
 // ISO/IEC 13818-1, available here: http://www.ece.cmu.edu/~ece796/documents/MPEG-2_Systems_IS.doc
 #include "ProgramMapTable.h"
 #include "Util.h"
+#include <cxxabi.h>
 #include <cassert>
 
 void ProgramMapTable::dump(std::ostream &where, std::string const &indent) const {
@@ -157,8 +158,14 @@ void Program::dump(std::ostream &where, std::string const &indent) const {
 	where << std::hex << std::setfill('0');
 	where << indent << "Program number: " << std::setw(4) << _programNumber << std::endl;
 	where << indent << "\t" << "PCR Pid: " << std::setw(4) << _pcrPid << std::endl;
-	for(auto d: _descriptors)
+	where << indent << "\t" << "Number of descriptors: " << _descriptors.size() << std::endl;
+	for(auto d: _descriptors) {
+		std::cerr << "Dumping descriptor" << std::endl;
+		std::cerr << "Type " << static_cast<int>(d->tag()) << std::endl;
+		std::cerr << abi::__cxa_demangle(typeid(d).name(), 0, 0, 0) << std::endl;
 		d->dump(where, indent+"\t");
+		std::cerr << "Done dumping" << std::endl;
+	}
 	where << indent << "\t" << "Streams:" << std::endl;
 	for(auto s: _streams)
 		s.dump(where, indent+"\t\t");

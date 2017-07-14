@@ -8,6 +8,9 @@
 #include "CopyrightDescriptor.h"
 #include "DataBroadcastIDDescriptor.h"
 #include "ServiceDescriptor.h"
+#include "ServiceListDescriptor.h"
+#include "PrivateDataSpecifierDescriptor.h"
+#include "CableDeliverySystemDescriptor.h"
 #include "Util.h"
 #include <cxxabi.h>
 
@@ -32,6 +35,12 @@ DVBDescriptor *DVBDescriptor::get(unsigned char *&where) {
 		return new DataBroadcastIdDescriptor(d);
 	case Service:
 		return new ServiceDescriptor(d);
+	case ServiceList:
+		return new ServiceListDescriptor(d);
+	case PrivateDataSpecifier:
+		return new PrivateDataSpecifierDescriptor(d);
+	case CableDeliverySystem:
+		return new CableDeliverySystemDescriptor(d);
 	default:
 		return d;
 	}
@@ -47,6 +56,5 @@ DVBDescriptor::DVBDescriptor(unsigned char *&where) {
 void DVBDescriptor::dump(std::ostream &where, std::string const &indent) const {
 	Util::SaveIOState sis(where);
 	where << indent << abi::__cxa_demangle(typeid(this).name(), 0, 0, 0) << std::endl;
-	where << indent << "Tag: " << std::hex << static_cast<int>(_tag) << ", length " << static_cast<int>(_length) << std::endl;
 	Util::hexdump(_data, _length, where, indent);
 }

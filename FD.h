@@ -18,6 +18,11 @@ public:
 	 */
 	FD(std::string const &file, int mode = O_RDONLY):_fd(open(file.c_str(), mode)) {}
 	/**
+	 * Take control of an existing FD
+	 * @param fd File descriptor
+	 */
+	FD(int fd):_fd(fd) { }
+	/**
 	 * Destructor -- closes the file
 	 */
 	~FD() { if(_fd >= 0) close(_fd); }

@@ -45,7 +45,6 @@ public:
 class Program {
 public:
 	Program(ProgramMapTables const &pmt);
-	~Program() { for(auto d: _descriptors) delete d; }
 	std::vector<DVBDescriptor*> const &descriptors() const { return _descriptors; }
 	std::vector<Stream> const &streams() const { return _streams; }
 	void dump(std::ostream &where=std::cerr, std::string const &indent="") const;

@@ -2,6 +2,7 @@
 #include "ProgramAssociationTable.h"
 #include "ProgramMapTable.h"
 #include "ServiceDescriptionTable.h"
+#include "NetworkInformationTable.h"
 #include "Util.h"
 #include <iostream>
 #include <cstring>
@@ -26,6 +27,9 @@ DVBTable *DVBTable::read(int fd) {
 	case ServiceDescription:
 	case ServiceDescriptionOther:
 		return new ServiceDescriptionTable(t);
+	case NetworkInformation:
+	case NetworkInformationOther:
+		return new NetworkInformationTable(t);
 	default:
 		std::cerr << "Received table with unknown id " << static_cast<int>(t->tableId()) << std::endl;
 	}
@@ -38,7 +42,9 @@ DVBTable::DVBTable(int fd) {
 	do {
 		count = ::read(fd, header, sizeof(header));
 		if(count != sizeof(header)) {
-			std::cerr << "Incomplete packet" << std::endl;
+			std::cerr << "Incomplete packet, got " << count << ", expected at least " << sizeof(header) << " from " << fd << std::endl;
+			if(count<0)
+				std::cerr << strerror(errno) << std::endl;
 			ioctl(fd, DMX_STOP);
 			sleep(1);
 			ioctl(fd, DMX_START);
@@ -113,7 +119,7 @@ DVBTable::DVBTable(DVBTable *t):
 }
 
 bool DVBTable::ok() const {
-	return _sectionSyntaxIndicator /*&& (_crc == _calculatedCrc)*/;
+	return _sectionSyntaxIndicator && (_crc == _calculatedCrc);
 }
 
 DVBTable::~DVBTable() {
