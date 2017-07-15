@@ -102,6 +102,7 @@ public:
 protected:
 	DVBDescriptor() { }
 	DVBDescriptor(unsigned char *&where);
+	DVBDescriptor(DVBDescriptor * const other):_tag(other->_tag),_length(other->_length),_data(std::move(other->_data)) { delete other; }
 protected:
 	uint8_t	_tag;
 	uint8_t _length;

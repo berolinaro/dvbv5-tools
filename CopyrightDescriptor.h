@@ -5,11 +5,7 @@
 
 class CopyrightDescriptor:public DVBDescriptor {
 public:
-	CopyrightDescriptor(DVBDescriptor *d):DVBDescriptor() {
-		_tag = d->tag();
-		_length = d->length();
-		_data = d->data();
-		delete d;
+	CopyrightDescriptor(DVBDescriptor * const d):DVBDescriptor(d) {
 	}
 	uint32_t identifier() const {
 		return (_data[0]<<24)|(_data[1]<<16)|(_data[2]<<8)|_data[3];

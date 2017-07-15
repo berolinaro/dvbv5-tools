@@ -68,6 +68,7 @@ public:
 	uint8_t section() const { return _section; }
 	uint8_t lastSection() const { return _lastSection; }
 	uint16_t number() const { return _number; }
+	void releaseData() { _data = nullptr; }
 	bool operator ==(DVBTable const &other) const { return _tableId == other._tableId && _section == other._section && _version == other._version; }
 	static constexpr uint8_t tablePid = 0x00;
 	static constexpr uint8_t tableFilter = 0x00;
@@ -119,7 +120,6 @@ public:
 			}
 			typename DT::TableType *d=dynamic_cast<typename DT::TableType*>(t);
 			if(d && d->tableId() == Invalid) { // Timeout -- probably the table just doesn't exist
-				std::cerr << "Got invalid table!" << std::endl;
 				break;
 			}
 			if(d)
@@ -149,6 +149,7 @@ public:
 		} else if(T *old=(*this)[t->section()]) {
 			if(old == t) {
 				// Dupe
+				t->releaseData();
 				delete t;
 				return false;
 			} else if(*old == *t) {

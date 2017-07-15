@@ -17,11 +17,7 @@ public:
 		ReservedFutureUse = 7
 	};
 
-	AncillaryDataDescriptor(DVBDescriptor *d):DVBDescriptor() {
-		_tag = d->tag();
-		_length = d->length();
-		_data = d->data();
-		delete d;
+	AncillaryDataDescriptor(DVBDescriptor * const d):DVBDescriptor(d) {
 	}
 	std::bitset<8> ancillaryData() const { return _data[0]; }
 	void dump(std::ostream &where=std::cerr, std::string const &indent="") const override {

@@ -8,11 +8,7 @@
 // http://www.etsi.org/deliver/etsi_ts/102800_102899/102809/01.03.01_60/ts_102809v010301p.pdf
 class ApplicationSignalingDescriptor:public DVBDescriptor {
 public:
-	ApplicationSignalingDescriptor(DVBDescriptor *d):DVBDescriptor() {
-		_tag = d->tag();
-		_length = d->length();
-		_data = d->data();
-		delete d;
+	ApplicationSignalingDescriptor(DVBDescriptor * const d):DVBDescriptor(d) {
 	}
 	void dump(std::ostream &where=std::cerr, std::string const &indent="") const override {
 		where << indent << "Application Signaling: " << std::endl;

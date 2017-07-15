@@ -138,7 +138,7 @@ void DVBInterface::scanTransponder() {
 	std::map<uint16_t,uint16_t> PMTPids = pats->pids();
 	delete pats;
 	std::vector<Program> programs;
-	for(auto p: PMTPids) {
+	for(auto const &p: PMTPids) {
 		if(p.first == 0) continue;
 		ProgramMapTables *pmts = DVBTables<ProgramMapTable>::read<ProgramMapTables>(_dmxFd, p.second);
 		if(!pmts) // Dropped w/ timeout or other error
@@ -147,14 +147,15 @@ void DVBInterface::scanTransponder() {
 		delete pmts;
 	}
 
-	for(auto p: programs)
+	for(auto const &p: programs)
 		p.dump(std::cerr);
 
 	ServiceDescriptionTables *sdts = DVBTables<ServiceDescriptionTable>::read<ServiceDescriptionTables>(_dmxFd);
 	std::vector<Service> services=sdts->services();
-	for(auto s: services) {
+	for(auto const &s: services) {
 		std::cerr << s.name() << std::endl;
 	}
+	delete sdts;
 }
 
 void DVBInterface::scan() {
@@ -163,11 +164,9 @@ void DVBInterface::scan() {
 	if(_dmxFd < 0)
 		return;
 	NetworkInformationTables *nits = DVBTables<NetworkInformationTable>::read<NetworkInformationTables>(_dmxFd);
-	std::cerr << "Dumping NITs" << std::endl;
 	nits->dump();
-	std::cerr << "Done dumping NITs..." << std::endl;
 	std::vector<Transponder*> t=nits->transponders();
-	for(auto tp: t) {
+	for(auto const &tp: t) {
 		if(tune(tp, 5000000))
 			std::cerr << "Found transponder at " << tp->frequency() << std::endl;
 		else

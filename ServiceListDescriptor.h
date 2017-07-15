@@ -6,11 +6,7 @@
 
 class ServiceListDescriptor:public DVBDescriptor {
 public:
-	ServiceListDescriptor(DVBDescriptor *d):DVBDescriptor() {
-		_tag = d->tag();
-		_length = d->length();
-		_data = d->data();
-		delete d;
+	ServiceListDescriptor(DVBDescriptor * const d):DVBDescriptor(d) {
 	}
 	std::map<uint16_t,ServiceType> services() const {
 		std::map<uint16_t,ServiceType> ret;
@@ -23,7 +19,7 @@ public:
 	}
 	void dump(std::ostream &where=std::cerr, std::string const &indent="") const override {
 		where << indent << "Service List Descriptor:" << std::endl;
-		for(auto a: services()) {
+		for(auto const &a: services()) {
 			where << indent << "\t" << "Service ID " << a.first << " is a ";
 			switch(a.second) {
 			case 0x1:

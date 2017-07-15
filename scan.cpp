@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
 	for(DVBInterface &c: cards) {
 		c.tune(initial);
 		std::vector<Transponder*> tp=c.scanTransponders();
-		for(auto t: tp) {
+		for(auto const &t: tp) {
 			if(!c.tune(t)) {
 				std::cerr << "Can't tune to transponder at frequency " << t->frequency() << " even though it's in the NIT" << std::endl;
 				continue;

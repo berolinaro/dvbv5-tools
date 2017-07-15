@@ -11,11 +11,7 @@ public:
 		HearingImpaired = 0x02,
 		VisualImpaired = 0x03
 	};
-	LanguageDescriptor(DVBDescriptor *d):DVBDescriptor() {
-		_tag = d->tag();
-		_length = d->length();
-		_data = d->data();
-		delete d;
+	LanguageDescriptor(DVBDescriptor * const d):DVBDescriptor(d) {
 	}
 	std::string language() const {
 		return ISO639_2::language(langCode());

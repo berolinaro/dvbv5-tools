@@ -37,7 +37,7 @@ std::vector<Transponder*> NetworkInformationTable::transponders() const {
 
 std::vector<Transponder*> NetworkInformationTables::transponders() const {
 	std::vector<Transponder*> ret;
-	for(auto a: *this) {
+	for(auto const &a: *this) {
 		std::vector<Transponder*> tp = a->transponders();
 		ret.insert(ret.end(), tp.begin(), tp.end());
 	}
@@ -80,6 +80,6 @@ void NetworkInformationTable::dump(std::ostream &where, std::string const &inden
 
 void NetworkInformationTables::dump(std::ostream &where, std::string const &indent) const {
 	Util::SaveIOState isr(where);
-	for(auto t: *this)
+	for(auto const &t: *this)
 		t->dump(where, indent);
 }

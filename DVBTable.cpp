@@ -31,7 +31,6 @@ DVBTable *DVBTable::read(int fd) {
 	case NetworkInformationOther:
 		return new NetworkInformationTable(t);
 	case Invalid:
-		cerr << "Received Invalid table, sending nullptr" << endl;
 		delete t;
 		return nullptr;
 	default:
@@ -40,7 +39,7 @@ DVBTable *DVBTable::read(int fd) {
 	return t;
 }
 
-DVBTable::DVBTable(int fd) {
+DVBTable::DVBTable(int fd):_data(nullptr) {
 	ssize_t count;
 	unsigned char header[8];
 	do {
@@ -60,8 +59,6 @@ DVBTable::DVBTable(int fd) {
 		}
 		_tableId = header[0];
 		_sectionSyntaxIndicator = (header[1]&0b10000000)>>7;
-		if(!_sectionSyntaxIndicator)
-			std::cerr << "Ignoring bogus section syntax indicator" << std::endl;
 		_private = (header[1]&0b01000000)>>6;
 		// The next 12 bits are the section length (number of
 		// following bytes including CRC). We change it to
@@ -122,7 +119,7 @@ DVBTable::DVBTable(DVBTable *t):
 	_crc(std::move(t->_crc)),
 	_calculatedCrc(std::move(t->_calculatedCrc))
 {
-	t->_data = 0;
+	t->_data = nullptr;
 	delete t;
 }
 
@@ -136,8 +133,8 @@ DVBTable::~DVBTable() {
 }
 
 void DVBTable::dump(std::ostream &where, std::string const &indent) const {
-	cerr << indent << abi::__cxa_demangle(typeid(*this).name(), 0, 0, 0) << endl;
-	cerr << indent << "Section " << static_cast<int>(_section) << "/" << static_cast<int>(_lastSection) << endl;
+	where << indent << abi::__cxa_demangle(typeid(*this).name(), 0, 0, 0) << endl;
+	where << indent << "Section " << static_cast<int>(_section) << "/" << static_cast<int>(_lastSection) << endl;
 	if(_data)
 		Util::hexdump(_data, _dataLength, where, indent);
 }

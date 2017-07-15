@@ -81,7 +81,7 @@ std::vector<Service> ServiceDescriptionTable::services() const {
 
 std::vector<Service> ServiceDescriptionTables::services() const {
 	std::vector<Service> ret;
-	for(auto sdt: *this) {
+	for(auto const &sdt: *this) {
 		std::vector<Service> const s=sdt->services();
 		ret.insert(ret.end(), s.begin(), s.end());
 	}

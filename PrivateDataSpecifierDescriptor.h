@@ -6,11 +6,7 @@
 
 class PrivateDataSpecifierDescriptor:public DVBDescriptor {
 public:
-	PrivateDataSpecifierDescriptor(DVBDescriptor *d):DVBDescriptor() {
-		_tag = d->tag();
-		_length = d->length();
-		_data = d->data();
-		delete d;
+	PrivateDataSpecifierDescriptor(DVBDescriptor * const d):DVBDescriptor(d) {
 	}
 	uint32_t privateDataType() const {
 		return (_data[0]<<24)|(_data[1]<<16)|(_data[2]<<8)|(_data[3]);

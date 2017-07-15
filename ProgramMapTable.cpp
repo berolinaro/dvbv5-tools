@@ -72,7 +72,7 @@ Program::Program(ProgramMapTables const &pmts) {
 	_programNumber = (*pmts.begin())->programNumber();
 	_pcrPid = (((*pmts.begin())->_data[0]&0b00011111)<<8)|(*pmts.begin())->_data[1];
 	int i=0;
-	for(auto pmt: pmts) {
+	for(auto const &pmt: pmts) {
 		if(_programNumber != pmt->programNumber()) {
 			std::cerr << "Program number" << ++i << ": " << pmt->programNumber() << std::endl;
 			std::cerr << "Found a program map table with inconsistent program numbers! Ignoring..." << std::endl;
@@ -148,7 +148,7 @@ void Stream::dump(std::ostream &where, std::string const &indent) const {
 	where << indent << "PID: " << std::setw(4) << _pid << std::endl;
 	if(!_descriptors.empty()) {
 		where << indent << "Descriptors:" << std::endl;
-		for(auto d: _descriptors)
+		for(auto const &d: _descriptors)
 			d->dump(where, indent+"\t");
 	}
 }
@@ -159,7 +159,7 @@ void Program::dump(std::ostream &where, std::string const &indent) const {
 	where << indent << "Program number: " << std::setw(4) << _programNumber << std::endl;
 	where << indent << "\t" << "PCR Pid: " << std::setw(4) << _pcrPid << std::endl;
 	where << indent << "\t" << "Number of descriptors: " << _descriptors.size() << std::endl;
-	for(auto d: _descriptors) {
+	for(auto const &d: _descriptors) {
 		std::cerr << "Dumping descriptor" << std::endl;
 		std::cerr << "Type " << static_cast<int>(d->tag()) << std::endl;
 		std::cerr << abi::__cxa_demangle(typeid(d).name(), 0, 0, 0) << std::endl;
@@ -167,7 +167,7 @@ void Program::dump(std::ostream &where, std::string const &indent) const {
 		std::cerr << "Done dumping" << std::endl;
 	}
 	where << indent << "\t" << "Streams:" << std::endl;
-	for(auto s: _streams)
+	for(auto const &s: _streams)
 		s.dump(where, indent+"\t\t");
 }
 

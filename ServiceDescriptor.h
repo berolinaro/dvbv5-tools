@@ -9,11 +9,7 @@
 
 class ServiceDescriptor:public DVBDescriptor {
 public:
-	ServiceDescriptor(DVBDescriptor *d):DVBDescriptor() {
-		_tag = d->tag();
-		_length = d->length();
-		_data = d->data();
-		delete d;
+	ServiceDescriptor(DVBDescriptor * const d):DVBDescriptor(d) {
 	}
 	ServiceType serviceType() const {
 		return static_cast<ServiceType>(_data[0]);

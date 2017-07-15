@@ -6,11 +6,7 @@
 
 class DataBroadcastIdDescriptor:public DVBDescriptor {
 public:
-	DataBroadcastIdDescriptor(DVBDescriptor *d):DVBDescriptor() {
-		_tag = d->tag();
-		_length = d->length();
-		_data = d->data();
-		delete d;
+	DataBroadcastIdDescriptor(DVBDescriptor * const d):DVBDescriptor(d) {
 	}
 	uint16_t broadcastId() const {
 		return (_data[0]<<8)|_data[1];

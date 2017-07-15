@@ -26,14 +26,14 @@ void ProgramAssociationTable::dump(std::ostream &where, std::string const &inden
 	DVBTable::dump(where, indent);
 	std::map<uint16_t,uint16_t> PIDs=pids();
 	where << std::hex << std::setfill('0');
-	for(std::pair<uint16_t,uint16_t> p: PIDs) {
+	for(std::pair<uint16_t,uint16_t> const &p: PIDs) {
 		where << indent << "Program number " << std::setw(4) << p.first << " PID " << std::setw(4) << p.second << std::endl;
 	}
 }
 
 std::map<uint16_t,uint16_t> ProgramAssociationTables::pids() const {
 	std::map<uint16_t,uint16_t> result;
-	for(auto p: *this) {
+	for(auto const &p: *this) {
 		std::map<uint16_t,uint16_t> inSection = p->pids();
 		result.insert(inSection.begin(), inSection.end());
 	}
@@ -44,7 +44,7 @@ void ProgramAssociationTables::dump(std::ostream &where, std::string const &inde
 	Util::SaveIOState isr(where);
 	std::map<uint16_t,uint16_t> PIDs=pids();
 	where << std::hex << std::setfill('0');
-	for(std::pair<uint16_t,uint16_t> p: PIDs) {
+	for(std::pair<uint16_t,uint16_t> const &p: PIDs) {
 		where << indent << "Program number " << std::setw(4) << p.first << " PID " << std::setw(4) << p.second << std::endl;
 	}
 }
