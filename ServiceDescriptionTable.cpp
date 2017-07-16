@@ -55,10 +55,13 @@ void ServiceDescriptionTable::dump(std::ostream &where, std::string const &inden
 
 std::vector<Service> ServiceDescriptionTable::services() const {
 	std::vector<Service> ret;
+	if(!_data)
+		return ret;
 	uint16_t originalNetworkId = (_data[0]<<8)+_data[1];
 	unsigned char *pos = _data+3;
 	while(pos < _data+_dataLength) {
 		Service s(pos[0]<<8|pos[1]);
+		bool isValid = false;
 		bool inSchedule = pos[2]&0b00000010;
 		bool inPresentFollowing = pos[2]&0b00000001;
 		uint8_t runningStatus = (pos[3]&0b11100000)>>5;
@@ -72,9 +75,11 @@ std::vector<Service> ServiceDescriptionTable::services() const {
 				s.setName(sd->name());
 				s.setProviderName(sd->provider());
 				s.setServiceType(sd->serviceType());
+				isValid = true;
 			}
 		}
-		ret.push_back(s);
+		if(isValid)
+			ret.push_back(s);
 	}
 	return ret;
 }

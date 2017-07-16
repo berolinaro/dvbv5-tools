@@ -21,4 +21,5 @@ int main(int argc, char **argv) {
 			c.scanTransponder();
 		}
 	}
+	return 0;
 }

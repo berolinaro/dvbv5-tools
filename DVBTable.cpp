@@ -31,6 +31,7 @@ DVBTable *DVBTable::read(int fd) {
 	case NetworkInformationOther:
 		return new NetworkInformationTable(t);
 	case Invalid:
+		std::cerr << "Received Invalid table" << std::endl;
 		delete t;
 		return nullptr;
 	default:
