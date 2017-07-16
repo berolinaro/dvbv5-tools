@@ -22,8 +22,10 @@ public:
 		where << indent << "Data broadcast ID: " << broadcastId() << std::endl;
 		uint8_t *sb = selectorBytes();
 		if(sb) {
-			where << indent << "\t" << "Selector bytes: " << sb << std::endl;
-			delete sb;
+			where << indent << "\t" << "Selector bytes: ";
+			Util::hexdump(sb, _length-2, where, indent + "\t");
+			where << std::endl;
+			delete[] sb;
 		}
 	}
 };
