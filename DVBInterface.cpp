@@ -15,7 +15,7 @@ extern "C" {
 #include <linux/dvb/dmx.h>
 }
 
-DVBInterface::DVBInterface(int num, std::string const devPath):_frontendFd(-1),_dmxFd(-1) {
+DVBInterface::DVBInterface(int num, std::string const devPath):_frontendFd(-1),_dmxFd(-1),_currentTransponder(nullptr) {
 	_devPath = devPath;
 	if(_devPath[_devPath.length()-1] != '/')
 		_devPath += '/';
@@ -105,7 +105,11 @@ bool DVBInterface::tune(Transponder const &t, uint32_t timeout) {
 	if(timeout == 0)
 		return true;
 
-	return Util::waitFor(timeout, [this]() { auto s=status(); return s.test(Signal) && s.test(Lock); });
+	if(Util::waitFor(timeout, [this]() { auto s=status(); return s.test(Signal) && s.test(Lock); })) {
+		_currentTransponder = &t;
+		return true;
+	}
+	return false;
 }
 
 void DVBInterface::close() {
@@ -124,14 +128,14 @@ using namespace std;
 #include <errno.h>
 #include <cassert>
 
-void DVBInterface::scanTransponder() {
+std::vector<Service> DVBInterface::scanTransponder() {
 	if(_dmxFd < 0)
 		_dmxFd = open("demux0", O_RDWR|O_NONBLOCK);
 	if(_dmxFd < 0)
-		return;
+		return std::vector<Service>();
 	ProgramAssociationTables *pats = DVBTables<ProgramAssociationTable>::read<ProgramAssociationTables>(_dmxFd);
 	if(!pats) // Bogus transponder didn't even send a PAT on time
-		return;
+		return std::vector<Service>();
 
 	cerr << "Transport stream ID " << (*pats->begin())->number() << std::endl;
 
@@ -152,10 +156,8 @@ void DVBInterface::scanTransponder() {
 
 	ServiceDescriptionTables *sdts = DVBTables<ServiceDescriptionTable>::read<ServiceDescriptionTables>(_dmxFd);
 	std::vector<Service> services=sdts->services();
-	for(auto const &s: services) {
-		std::cerr << s.name() << std::endl;
-	}
 	delete sdts;
+	return services;
 }
 
 void DVBInterface::scan() {
@@ -172,6 +174,43 @@ void DVBInterface::scan() {
 		else
 			std::cerr << "Transponder at " << tp->frequency() << " is listed in NIT, but doesn't seem to exist" << std::endl;
 	}
+}
+
+bool DVBInterface::setup(Service const &s) {
+	if(_dmxFd < 0)
+		_dmxFd = open("demux0", O_RDWR|O_NONBLOCK);
+	if(_frontendFd < 0)
+		_frontendFd = open("frontend0", O_RDWR);
+	ProgramAssociationTables *pats = DVBTables<ProgramAssociationTable>::read<ProgramAssociationTables>(_dmxFd);
+	std::map<uint16_t,uint16_t> PMTPids = pats->pids();
+	auto pmtpid = PMTPids.find(s.serviceId());
+	if(pmtpid == PMTPids.end()) {
+		std::cerr << "Service ID not found in PAT" << std::endl;
+		return false;
+	}
+	ProgramMapTables *pmts = DVBTables<ProgramMapTable>::read<ProgramMapTables>(_dmxFd, (*pmtpid).second);
+	if(!pmts) {
+		delete pats;
+		std::cerr << "No PMT" << std::endl;
+		return false;
+	}
+	std::cerr << "PMT:" << std::endl;
+	Program p(*pmts);
+
+	dmx_pes_filter_params f;
+	f.pid = p.pcrPid();
+	f.input = DMX_IN_FRONTEND;
+	f.output = DMX_OUT_TS_TAP;
+	f.pes_type = DMX_PES_PCR0;
+	f.flags = DMX_CHECK_CRC;
+	ioctl(_dmxFd, DMX_SET_PES_FILTER, &f);
+
+	for(auto s: p.streams()) {
+		std::cerr << "Adding PID " << s.pid() << std::endl;
+		ioctl(_dmxFd, DMX_ADD_PID, s.pid());
+	}
+	ioctl(_dmxFd, DMX_START);
+	return true;
 }
 
 std::vector<Transponder*> DVBInterface::scanTransponders() {

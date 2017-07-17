@@ -8,6 +8,7 @@ extern "C" {
 
 class Transponder {
 public:
+	static Transponder *fromString(std::string const &t);
 	Transponder();
 	uint32_t frequency() const { return getParameter(DTV_FREQUENCY); }
 	virtual operator dtv_properties const *() const = 0;

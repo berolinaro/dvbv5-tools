@@ -6,6 +6,7 @@
 #include <cmath>
 #include "FD.h"
 #include "Transponder.h"
+#include "Service.h"
 
 extern "C" {
 #include <linux/dvb/frontend.h>
@@ -131,11 +132,16 @@ public:
 	bool tune(Transponder const &t, uint32_t timeout = 0);
 	bool tune(Transponder const * const t, uint32_t timeout = 0) { return tune(*t, timeout); }
 	void close();
+	uint32_t currentFrequency() const { return _currentTransponder ? _currentTransponder->frequency() : 0; }
+	/**
+	 * Set up the DVR device for retrieving the specified channel
+	 */
+	bool setup(Service const &s);
 
 	std::vector<Transponder*> scanTransponders();
 
 	void scan();
-	void scanTransponder();
+	std::vector<Service> scanTransponder();
 protected:
 	int open(std::string const &dev, int mode = O_RDONLY) const;
 protected:
@@ -143,7 +149,7 @@ protected:
 	int _dmxFd;
 	int _frontendFd;
 	dvb_frontend_info _feInfo;
-	Transponder *_currentTransponder;
+	Transponder const *_currentTransponder;
 };
 
 class DVBInterfaces:public std::vector<DVBInterface> {

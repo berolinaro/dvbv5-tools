@@ -57,6 +57,8 @@ std::vector<Service> ServiceDescriptionTable::services() const {
 	std::vector<Service> ret;
 	if(!_data)
 		return ret;
+	assert(_data != 0x18);
+	assert(this != 0x18);
 	uint16_t originalNetworkId = (_data[0]<<8)+_data[1];
 	unsigned char *pos = _data+3;
 	while(pos < _data+_dataLength) {
@@ -87,6 +89,9 @@ std::vector<Service> ServiceDescriptionTable::services() const {
 std::vector<Service> ServiceDescriptionTables::services() const {
 	std::vector<Service> ret;
 	for(auto const &sdt: *this) {
+		assert(sdt);
+		assert(sdt != 0x18);
+		sdt->dump(std::cerr);
 		std::vector<Service> const s=sdt->services();
 		ret.insert(ret.end(), s.begin(), s.end());
 	}

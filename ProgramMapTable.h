@@ -48,6 +48,7 @@ public:
 	std::vector<DVBDescriptor*> const &descriptors() const { return _descriptors; }
 	std::vector<Stream> const &streams() const { return _streams; }
 	void dump(std::ostream &where=std::cerr, std::string const &indent="") const;
+	uint16_t pcrPid() const { return _pcrPid; }
 protected:
 	uint16_t			_programNumber;
 	uint16_t			_pcrPid;

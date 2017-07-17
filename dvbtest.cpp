@@ -54,8 +54,9 @@ int main(int argc, char **argv) {
 		dumpInfo(c);
 	}
 
+	Transponder *t = Transponder::fromString("C	594000000	6900000	5	0	2");
 	//DVBCTransponder t(594000000, 6900000, QAM_256, FEC_NONE);
-	DVBCTransponder t(650000000, 6900000, QAM_256, FEC_NONE);
+	//DVBCTransponder t(650000000, 6900000, QAM_256, FEC_NONE);
 	if(!cards[0].tune(t, 5000000)) {
 		cout << "Tuning failed" << endl;
 		return 1;

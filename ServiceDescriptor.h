@@ -5,6 +5,7 @@
 #include <cstring>
 #include <bitset>
 #include <iostream>
+#include <cassert>
 #include "Util.h"
 
 class ServiceDescriptor:public DVBDescriptor {
@@ -33,6 +34,7 @@ public:
 		return provName;
 	}
 	std::string name() const {
+		assert(_data);
 		unsigned char const *pos = _data + _data[1] + 2;
 		uint8_t length=pos[0];
 		char name[length+1];

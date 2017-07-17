@@ -134,7 +134,7 @@ DVBTable::~DVBTable() {
 }
 
 void DVBTable::dump(std::ostream &where, std::string const &indent) const {
-	where << indent << abi::__cxa_demangle(typeid(*this).name(), 0, 0, 0) << std::endl;
+	where << indent << "DVB Table type " << static_cast<int>(_tableId) << std::endl;
 	where << indent << "Section " << static_cast<int>(_section) << "/" << static_cast<int>(_lastSection) << std::endl;
 	if(_data)
 		Util::hexdump(_data, _dataLength, where, indent);

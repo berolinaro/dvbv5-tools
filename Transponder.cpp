@@ -1,4 +1,28 @@
 #include "Transponder.h"
+#include <sstream>
+
+Transponder *Transponder::fromString(std::string const &t) {
+	std::istringstream iss(t);
+	std::string part;
+	// FIXME need to check the input is OK...
+	std::getline(iss, part, '\t');
+	if(part == "C") { // DVB-C
+		std::getline(iss, part, '\t');
+		uint32_t freq = std::stoi(part);
+		if(!freq)
+			return nullptr;
+		std::getline(iss, part, '\t');
+		uint32_t srate = std::stoi(part);
+		std::getline(iss, part, '\t');
+		fe_modulation mod = static_cast<fe_modulation>(std::stoi(part));
+		std::getline(iss, part, '\t');
+		fe_code_rate fec = static_cast<fe_code_rate>(std::stoi(part));
+		std::getline(iss, part, '\t');
+		fe_spectral_inversion inv = static_cast<fe_spectral_inversion>(std::stoi(part));
+		return new DVBCTransponder(freq, srate, mod, fec, inv);
+	}
+	return nullptr;
+}
 
 Transponder::Transponder() {
 	_props.num = 0;

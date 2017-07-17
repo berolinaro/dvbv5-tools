@@ -1,4 +1,5 @@
 #include "DVBInterface.h"
+#include "Service.h"
 #include <iostream>
 
 int main(int argc, char **argv) {
@@ -13,12 +14,18 @@ int main(int argc, char **argv) {
 		c.tune(initial);
 		std::vector<Transponder*> tp=c.scanTransponders();
 		for(auto const &t: tp) {
+			std::cout << t->toString() << std::endl;
+		}
+		for(auto const &t: tp) {
 			if(!c.tune(t)) {
 				std::cerr << "Can't tune to transponder at frequency " << t->frequency() << " even though it's in the NIT" << std::endl;
 				continue;
 			}
 			std::cerr << "Scanning transponder at frequency " << t->frequency() << std::endl;
-			c.scanTransponder();
+			std::vector<Service> srv = c.scanTransponder();
+			for(auto const &s: srv) {
+				std::cout << t->frequency() << "\t" << s.name() << "\t" << s.providerName() << "\t" << s.serviceId() << "\t" << s.serviceType() << std::endl;
+			}
 		}
 	}
 	return 0;
