@@ -21,6 +21,9 @@ DVBInterface::DVBInterface(int num, std::string const devPath):_frontendFd(-1),_
 		_devPath += '/';
 	_devPath += "adapter" + std::to_string(num) + "/";
 
+	for(int i=0; i<DMX_PES_OTHER+1; i++)
+		_pesFd[i] = -1;
+
 	memset(&_feInfo, 0, sizeof(dvb_frontend_info));
 
 	FD fd = open("frontend0", O_RDWR);
@@ -121,6 +124,12 @@ void DVBInterface::close() {
 		::close(_dmxFd);
 		_dmxFd = -1;
 	}
+	for(int i=0; i<DMX_PES_OTHER+1; i++) {
+		if(_pesFd[i] >= 0) {
+			::close(_pesFd[i]);
+			_pesFd[i] = -1;
+		}
+	}
 }
 
 #include <iostream>
@@ -179,8 +188,6 @@ void DVBInterface::scan() {
 bool DVBInterface::setup(Service const &s) {
 	if(_dmxFd < 0)
 		_dmxFd = open("demux0", O_RDWR|O_NONBLOCK);
-	if(_frontendFd < 0)
-		_frontendFd = open("frontend0", O_RDWR);
 	ProgramAssociationTables *pats = DVBTables<ProgramAssociationTable>::read<ProgramAssociationTables>(_dmxFd);
 	std::map<uint16_t,uint16_t> PMTPids = pats->pids();
 	auto pmtpid = PMTPids.find(s.serviceId());
@@ -194,7 +201,7 @@ bool DVBInterface::setup(Service const &s) {
 		std::cerr << "No PMT" << std::endl;
 		return false;
 	}
-	std::cerr << "PMT:" << std::endl;
+
 	Program p(*pmts);
 
 	dmx_pes_filter_params f;
@@ -202,15 +209,75 @@ bool DVBInterface::setup(Service const &s) {
 	f.input = DMX_IN_FRONTEND;
 	f.output = DMX_OUT_TS_TAP;
 	f.pes_type = DMX_PES_PCR0;
-	f.flags = DMX_CHECK_CRC;
-	ioctl(_dmxFd, DMX_SET_PES_FILTER, &f);
+	f.flags = DMX_CHECK_CRC|DMX_IMMEDIATE_START;
+	openPES(f.pes_type);
+	ioctl(_pesFd[f.pes_type], DMX_SET_PES_FILTER, &f);
+
+	dmx_pes_type_t audioFilter = DMX_PES_AUDIO0,
+		videoFilter = DMX_PES_VIDEO0,
+		teletextFilter = DMX_PES_TELETEXT0,
+		subtitleFilter = DMX_PES_SUBTITLE0,
+		pcrFilter = DMX_PES_PCR1;
 
 	for(auto s: p.streams()) {
-		std::cerr << "Adding PID " << s.pid() << std::endl;
-		ioctl(_dmxFd, DMX_ADD_PID, s.pid());
+		// The code below assumes that dmx_pes_type_t is a list of
+		// audio, video, teletext, subtitle, pcr, audio, video, ...
+		// If the layout of dmx_pes_type_t ever changes in the kernel,
+		// we need to make some adjustments here.
+		// In the mean time, this calculation is better than going from
+		// hardcoded DMX_PES_AUDIO0 to DMX_PES_AUDIO1 to DMX_PES_AUDIO2
+		// etc. -- our way automatically supports DMX_PES_AUDIO4 etc.
+		// if the API is ever extended to handle more than 4 concurrent
+		// streams of each type.
+		if(s.isAudio()) {
+			std::cerr << "Audio PID " << s.pid() << std::endl;
+			if(audioFilter > DMX_PES_OTHER)
+				continue;
+			f.pes_type = audioFilter;
+			audioFilter = static_cast<dmx_pes_type_t>(audioFilter+DMX_PES_AUDIO1-DMX_PES_AUDIO0);
+		} else if(s.isVideo()) {
+			std::cerr << "Video PID " << s.pid() << std::endl;
+			if(videoFilter > DMX_PES_OTHER)
+				continue;
+			f.pes_type = videoFilter;
+			videoFilter = static_cast<dmx_pes_type_t>(videoFilter+DMX_PES_VIDEO1-DMX_PES_VIDEO0);
+		} else if(s.isTeletext()) {
+			std::cerr << "Teletext PID " << s.pid() << std::endl;
+			if(teletextFilter > DMX_PES_OTHER)
+				continue;
+			f.pes_type = teletextFilter;
+			teletextFilter = static_cast<dmx_pes_type_t>(teletextFilter+DMX_PES_TELETEXT1-DMX_PES_TELETEXT0);
+		} else if(s.isSubtitle()) {
+			std::cerr << "Subtitle PID " << s.pid() << std::endl;
+			if(subtitleFilter > DMX_PES_OTHER)
+				continue;
+			f.pes_type = subtitleFilter;
+			subtitleFilter = static_cast<dmx_pes_type_t>(subtitleFilter+DMX_PES_SUBTITLE1-DMX_PES_SUBTITLE0);
+		} else if(s.isPcr()) {
+			std::cerr << "PCR PID " << s.pid() << std::endl;
+			if(pcrFilter > DMX_PES_OTHER)
+				continue;
+			f.pes_type = pcrFilter;
+			pcrFilter = static_cast<dmx_pes_type_t>(pcrFilter+DMX_PES_PCR1-DMX_PES_PCR0);
+		} else {
+			std::cerr << "Other PID (type " << static_cast<int>(s.streamType()) << ") " << s.pid() << std::endl;
+			f.pes_type = DMX_PES_OTHER;
+		}
+		f.pid = s.pid();
+		if(_pesFd[f.pes_type]>=0)
+			continue;
+		openPES(f.pes_type);
+		if(_pesFd[f.pes_type] < 0)
+			std::cerr << strerror(errno) << std::endl;
+		ioctl(_pesFd[f.pes_type], DMX_SET_PES_FILTER, &f);
 	}
-	ioctl(_dmxFd, DMX_START);
 	return true;
+}
+
+int DVBInterface::openPES(dmx_pes_type_t pes) {
+	if(_pesFd[pes]>=0)
+		::close(_pesFd[pes]);
+	return _pesFd[pes] = open("demux0", O_RDWR);
 }
 
 std::vector<Transponder*> DVBInterface::scanTransponders() {

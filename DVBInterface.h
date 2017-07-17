@@ -10,6 +10,7 @@
 
 extern "C" {
 #include <linux/dvb/frontend.h>
+#include <linux/dvb/dmx.h>
 #include <fcntl.h>
 }
 
@@ -144,10 +145,12 @@ public:
 	std::vector<Service> scanTransponder();
 protected:
 	int open(std::string const &dev, int mode = O_RDONLY) const;
+	int openPES(dmx_pes_type_t pes);
 protected:
 	std::string _devPath;
 	int _dmxFd;
 	int _frontendFd;
+	int _pesFd[DMX_PES_OTHER+1];
 	dvb_frontend_info _feInfo;
 	Transponder const *_currentTransponder;
 };

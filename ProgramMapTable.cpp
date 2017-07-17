@@ -140,6 +140,8 @@ void Stream::dump(std::ostream &where, std::string const &indent) const {
 		where << "ISO/IEC 13818-6 type D";
 	else if(_streamType == 0x0a)
 		where << "ISO/IEC 13818-1 auxiliary";
+	else if(_streamType == 0x1b)
+		where << "HD TV"; // This is a guess -- not documented in ISO/IEC 13818-1
 	else if(_streamType >= 0x0f && _streamType <= 0x7f)
 		where << "ISO/IEC 13818-1 reserved";
 	else
@@ -151,6 +153,29 @@ void Stream::dump(std::ostream &where, std::string const &indent) const {
 		for(auto const &d: _descriptors)
 			d->dump(where, indent+"\t");
 	}
+}
+
+bool Stream::isAudio() const {
+	return _streamType == 0x03 || _streamType == 0x04;
+}
+
+bool Stream::isVideo() const {
+	return _streamType == 0x01 || _streamType == 0x02 || _streamType == 0x1b;
+}
+
+bool Stream::isTeletext() const {
+	// FIXME identify the streamType for Teletext
+	return false;
+}
+
+bool Stream::isSubtitle() const {
+	// FIXME identify the streamType for subtitles
+	return false;
+}
+
+bool Stream::isPcr() const {
+	// FIXME do we ever get a PCR in the stream list?
+	return false;
 }
 
 void Program::dump(std::ostream &where, std::string const &indent) const {

@@ -13,6 +13,11 @@ public:
 	uint16_t pid() const { return _pid; }
 	std::vector<DVBDescriptor*> descriptors() const { return _descriptors; }
 	void dump(std::ostream &where=std::cerr, std::string const &indent="") const;
+	bool isAudio() const;
+	bool isVideo() const;
+	bool isTeletext() const;
+	bool isSubtitle() const;
+	bool isPcr() const;
 protected:
 	uint8_t _streamType;
 	uint16_t _pid;
