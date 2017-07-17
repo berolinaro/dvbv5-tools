@@ -203,6 +203,7 @@ bool DVBInterface::setup(Service const &s) {
 	}
 
 	Program p(*pmts);
+	p.dump();
 
 	dmx_pes_filter_params f;
 	f.pid = p.pcrPid();

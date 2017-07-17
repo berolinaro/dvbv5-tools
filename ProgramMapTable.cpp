@@ -141,7 +141,9 @@ void Stream::dump(std::ostream &where, std::string const &indent) const {
 	else if(_streamType == 0x0a)
 		where << "ISO/IEC 13818-1 auxiliary";
 	else if(_streamType == 0x1b)
-		where << "HD TV"; // This is a guess -- not documented in ISO/IEC 13818-1
+		where << "HD Video"; // This is a guess -- not documented in ISO/IEC 13818-1, seen on "SRF info HD" in EWGoms DVB-C
+	else if(_streamType == 0x24)
+		where << "UHD Video"; // This is a guess -- not documented in ISO/IEC 13818-1, seen on "UHD Demo Channel" in EWGoms DVB-C
 	else if(_streamType >= 0x0f && _streamType <= 0x7f)
 		where << "ISO/IEC 13818-1 reserved";
 	else
@@ -160,7 +162,7 @@ bool Stream::isAudio() const {
 }
 
 bool Stream::isVideo() const {
-	return _streamType == 0x01 || _streamType == 0x02 || _streamType == 0x1b;
+	return _streamType == 0x01 || _streamType == 0x02 || _streamType == 0x1b || _streamType == 0x24;
 }
 
 bool Stream::isTeletext() const {
