@@ -5,6 +5,7 @@
 #include "NetworkInformationTable.h"
 #include "DVBDescriptor.h"
 #include "CableDeliverySystemDescriptor.h"
+#include "TerrestrialDeliverySystemDescriptor.h"
 #include "Util.h"
 
 std::vector<Transponder*> NetworkInformationTable::transponders() const {
@@ -26,10 +27,12 @@ std::vector<Transponder*> NetworkInformationTable::transponders() const {
 		pos += 6;
 		unsigned char *tsEnd = pos + transportDescriptorsLength;
 		while(pos < tsEnd) {
-			CableDeliverySystemDescriptor *d = dynamic_cast<CableDeliverySystemDescriptor*>(DVBDescriptor::get(pos));
-			if(!d)
-				continue;
-			ret.push_back(d->transponder());
+			DVBDescriptor *d = DVBDescriptor::get(pos);
+			if(CableDeliverySystemDescriptor *c = dynamic_cast<CableDeliverySystemDescriptor*>(d)) {
+				ret.push_back(c->transponder());
+			} else if(TerrestrialDeliverySystemDescriptor *t = dynamic_cast<TerrestrialDeliverySystemDescriptor*>(d)) {
+				ret.push_back(t->transponder());
+			}
 		}
 	}
 	return ret;

@@ -3,7 +3,8 @@
 #include <iostream>
 
 int main(int argc, char **argv) {
-	DVBCTransponder initial(618000000, 6900000, QAM_256, FEC_NONE);
+//	DVBCTransponder initial(618000000, 6900000, QAM_256, FEC_NONE);
+	DVBTTransponder initial(530000000, 8000000, FEC_2_3, FEC_AUTO, TRANSMISSION_MODE_8K, GUARD_INTERVAL_1_4, HIERARCHY_NONE, QAM_16, INVERSION_AUTO);
 	DVBInterfaces cards = DVBInterfaces::all();
 	if(cards.size() == 0) {
 		std::cerr << "No DVB interfaces found" << std::endl;
@@ -11,7 +12,8 @@ int main(int argc, char **argv) {
 	}
 
 	for(DVBInterface &c: cards) {
-		c.tune(initial);
+		if(!c.tune(initial))
+			std::cerr << "Can't tune to initial transponder " << initial.frequency() << std::endl;
 		std::vector<Transponder*> tp=c.scanTransponders();
 		for(auto const &t: tp) {
 			std::cout << t->toString() << std::endl;
@@ -21,6 +23,7 @@ int main(int argc, char **argv) {
 				std::cerr << "Can't tune to transponder at frequency " << t->frequency() << " even though it's in the NIT" << std::endl;
 				continue;
 			}
+
 			std::cerr << "Scanning transponder at frequency " << t->frequency() << std::endl;
 			std::vector<Service> srv = c.scanTransponder();
 			for(auto const &s: srv) {

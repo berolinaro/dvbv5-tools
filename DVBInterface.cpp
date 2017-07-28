@@ -142,6 +142,13 @@ std::vector<Service> DVBInterface::scanTransponder() {
 		_dmxFd = open("demux0", O_RDWR|O_NONBLOCK);
 	if(_dmxFd < 0)
 		return std::vector<Service>();
+#if 0
+	// Code kept here for reference for now
+	// We don't need to scan the PAT and PMT before
+	// knowing what channel we want.
+	// May want to fall back to PAT/PMT scanning if there's
+	// no proper SDT or if we find any service IDs not mentioned
+	// in the SDT.
 	ProgramAssociationTables *pats = DVBTables<ProgramAssociationTable>::read<ProgramAssociationTables>(_dmxFd);
 	if(!pats) // Bogus transponder didn't even send a PAT on time
 		return std::vector<Service>();
@@ -162,6 +169,7 @@ std::vector<Service> DVBInterface::scanTransponder() {
 
 	for(auto const &p: programs)
 		p.dump(std::cerr);
+#endif
 
 	ServiceDescriptionTables *sdts = DVBTables<ServiceDescriptionTable>::read<ServiceDescriptionTables>(_dmxFd);
 	std::vector<Service> services=sdts->services();

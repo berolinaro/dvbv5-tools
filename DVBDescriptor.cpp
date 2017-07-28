@@ -11,6 +11,7 @@
 #include "ServiceListDescriptor.h"
 #include "PrivateDataSpecifierDescriptor.h"
 #include "CableDeliverySystemDescriptor.h"
+#include "TerrestrialDeliverySystemDescriptor.h"
 #include "Util.h"
 #include <cxxabi.h>
 
@@ -41,6 +42,8 @@ DVBDescriptor *DVBDescriptor::get(unsigned char *&where) {
 		return new PrivateDataSpecifierDescriptor(d);
 	case CableDeliverySystem:
 		return new CableDeliverySystemDescriptor(d);
+	case TerrestrialDeliverySystem:
+		return new TerrestrialDeliverySystemDescriptor(d);
 	default:
 		return d;
 	}
