@@ -53,3 +53,20 @@ public:
 };
 
 std::ostream &operator <<(std::ostream &os, DVBTTransponder const &t);
+
+class DVBT2Transponder:public Transponder {
+public:
+	DVBT2Transponder(uint32_t frequency, uint32_t bandwidth=8000000, fe_code_rate codeRateHp=FEC_AUTO, int codeRateLp=FEC_AUTO, fe_transmit_mode mode=TRANSMISSION_MODE_AUTO, fe_guard_interval guardInterval=GUARD_INTERVAL_AUTO, fe_hierarchy hierarchy=HIERARCHY_AUTO, fe_modulation modulation=QAM_AUTO, fe_spectral_inversion inversion=INVERSION_AUTO);
+	std::string toString() const override;
+
+	uint32_t bandwidth() const { return getParameter(DTV_BANDWIDTH_HZ); }
+	fe_code_rate codeRateHp() const { return static_cast<fe_code_rate>(getParameter(DTV_CODE_RATE_HP)); }
+	fe_code_rate codeRateLp() const { return static_cast<fe_code_rate>(getParameter(DTV_CODE_RATE_LP)); }
+	fe_transmit_mode transmissionMode() const { return static_cast<fe_transmit_mode>(getParameter(DTV_TRANSMISSION_MODE)); }
+	fe_guard_interval guardInterval() const { return static_cast<fe_guard_interval>(getParameter(DTV_GUARD_INTERVAL)); }
+	fe_hierarchy hierarchy() const { return static_cast<fe_hierarchy>(getParameter(DTV_HIERARCHY)); }
+	fe_modulation modulation() const { return static_cast<fe_modulation>(getParameter(DTV_MODULATION)); }
+	fe_spectral_inversion inversion() const { return static_cast<fe_spectral_inversion>(getParameter(DTV_INVERSION)); }
+};
+
+std::ostream &operator <<(std::ostream &os, DVBT2Transponder const &t);
