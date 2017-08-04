@@ -58,6 +58,6 @@ DVBDescriptor::DVBDescriptor(unsigned char *&where) {
 
 void DVBDescriptor::dump(std::ostream &where, std::string const &indent) const {
 	Util::SaveIOState sis(where);
-	where << indent << abi::__cxa_demangle(typeid(this).name(), 0, 0, 0) << std::endl;
+	where << indent << abi::__cxa_demangle(typeid(this).name(), 0, 0, 0) << " tag " << std::hex << static_cast<int>(_tag) << std::endl;
 	Util::hexdump(_data, _length, where, indent);
 }
