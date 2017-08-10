@@ -140,6 +140,8 @@ void Stream::dump(std::ostream &where, std::string const &indent) const {
 		where << "ISO/IEC 13818-6 type D";
 	else if(_streamType == 0x0a)
 		where << "ISO/IEC 13818-1 auxiliary";
+	else if(_streamType == 0x11) // This is a guess -- not documented in ISO/IEC 13818-1, seen on "Das Erste HD" in Berlin DVB-T2
+		where << "AAC-LATM audio";
 	else if(_streamType == 0x1b)
 		where << "HD Video"; // This is a guess -- not documented in ISO/IEC 13818-1, seen on "SRF info HD" in EWGoms DVB-C
 	else if(_streamType == 0x24)
@@ -158,7 +160,7 @@ void Stream::dump(std::ostream &where, std::string const &indent) const {
 }
 
 bool Stream::isAudio() const {
-	return _streamType == 0x03 || _streamType == 0x04;
+	return _streamType == 0x03 || _streamType == 0x04 || _streamType == 0x11;
 }
 
 bool Stream::isVideo() const {

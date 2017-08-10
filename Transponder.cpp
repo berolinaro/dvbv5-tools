@@ -21,6 +21,7 @@ Transponder *Transponder::fromString(std::string const &t) {
 		fe_spectral_inversion inv = static_cast<fe_spectral_inversion>(std::stoi(part));
 		return new DVBCTransponder(freq, srate, mod, fec, inv);
 	} else if(part == "T" || part == "T2") { // DVB-T
+		bool T2 = (part == "T2");
 		std::getline(iss, part, '\t');
 		uint32_t freq = std::stoi(part);
 		if(!freq)
@@ -42,7 +43,7 @@ Transponder *Transponder::fromString(std::string const &t) {
 		std::getline(iss, part, '\t');
 		fe_spectral_inversion inv = static_cast<fe_spectral_inversion>(std::stoi(part));
 
-		if(part == "T2")
+		if(T2)
 			return new DVBT2Transponder(freq, bandwidth, codeRateHp, codeRateLp, mode, guardInterval, hierarchy, mod, inv);
 		else
 			return new DVBTTransponder(freq, bandwidth, codeRateHp, codeRateLp, mode, guardInterval, hierarchy, mod, inv);
@@ -141,7 +142,7 @@ std::ostream &operator<<(std::ostream &os, DVBTTransponder const &t) {
 }
 
 DVBT2Transponder::DVBT2Transponder(uint32_t frequency, uint32_t bandwidth, fe_code_rate codeRateHp, int codeRateLp, fe_transmit_mode mode, fe_guard_interval guardInterval, fe_hierarchy hierarchy, fe_modulation modulation, fe_spectral_inversion inversion):Transponder() {
-	dtv_property *prop=new dtv_property[11];
+	dtv_property *prop=new dtv_property[12];
 	prop[0].cmd = DTV_FREQUENCY;
 	prop[0].u.data = frequency;
 	prop[1].cmd = DTV_MODULATION;
@@ -162,10 +163,12 @@ DVBT2Transponder::DVBT2Transponder(uint32_t frequency, uint32_t bandwidth, fe_co
 	prop[8].u.data = hierarchy;
 	prop[9].cmd = DTV_DELIVERY_SYSTEM;
 	prop[9].u.data = SYS_DVBT2;
-	prop[10].cmd = DTV_TUNE;
+	prop[10].cmd = DTV_STREAM_ID;
 	prop[10].u.data = 0;
-	_props.num=11;
-	_props.props=&prop[0];
+	prop[11].cmd = DTV_TUNE;
+	prop[11].u.data = 0;
+	_props.num=12;
+	_props.props=prop;
 }
 
 std::string DVBT2Transponder::toString() const {

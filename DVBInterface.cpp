@@ -102,8 +102,18 @@ bool DVBInterface::tune(Transponder const &t, uint32_t timeout) {
 	if(_frontendFd < 0)
 		return false;
 
-	if(ioctl(_frontendFd, FE_SET_PROPERTY, p))
+#ifdef DEBUG_TUNING
+	std::cerr << "FE_SET_PROPERTY with " << static_cast<int>(p->num) << " arguments" << std::endl;
+	for(int crap=0; crap<p->num; crap++) {
+		if(p->props[crap].cmd == 40)
+			p->props[crap].u.data = 0;
+		std::cerr << "\t" << static_cast<int>(p->props[crap].cmd) << " = " << static_cast<int>(p->props[crap].u.data) << std::endl;
+	}
+#endif
+	if(ioctl(_frontendFd, FE_SET_PROPERTY, p)) {
+		perror("FE_SET_PROPERTY");
 		return false;
+	}
 
 	if(timeout == 0)
 		return true;
@@ -172,6 +182,8 @@ std::vector<Service> DVBInterface::scanTransponder() {
 #endif
 
 	ServiceDescriptionTables *sdts = DVBTables<ServiceDescriptionTable>::read<ServiceDescriptionTables>(_dmxFd);
+	if(!sdts)
+		return std::vector<Service>();
 	std::vector<Service> services=sdts->services();
 	delete sdts;
 	return services;
@@ -183,6 +195,8 @@ void DVBInterface::scan() {
 	if(_dmxFd < 0)
 		return;
 	NetworkInformationTables *nits = DVBTables<NetworkInformationTable>::read<NetworkInformationTables>(_dmxFd);
+	if(!nits)
+		return;
 	nits->dump();
 	std::vector<Transponder*> t=nits->transponders();
 	for(auto const &tp: t) {
@@ -197,6 +211,8 @@ bool DVBInterface::setup(Service const &s) {
 	if(_dmxFd < 0)
 		_dmxFd = open("demux0", O_RDWR|O_NONBLOCK);
 	ProgramAssociationTables *pats = DVBTables<ProgramAssociationTable>::read<ProgramAssociationTables>(_dmxFd);
+	if(!pats)
+		return false;
 	std::map<uint16_t,uint16_t> PMTPids = pats->pids();
 	auto pmtpid = PMTPids.find(s.serviceId());
 	if(pmtpid == PMTPids.end()) {
@@ -290,7 +306,10 @@ int DVBInterface::openPES(dmx_pes_type_t pes) {
 }
 
 std::vector<Transponder*> DVBInterface::scanTransponders() {
-	return DVBTables<NetworkInformationTable>::read<NetworkInformationTables>(FD(open("demux0", O_RDWR|O_NONBLOCK)))->transponders();
+	auto nit = DVBTables<NetworkInformationTable>::read<NetworkInformationTables>(FD(open("demux0", O_RDWR|O_NONBLOCK)));
+	if(!nit)
+		return std::vector<Transponder*>();
+	return nit->transponders();
 }
 
 /* More Diseqc bits not yet supported (no satellite dish to test with...):

@@ -17,8 +17,10 @@ int main(int argc, char **argv) {
 			std::cerr << "Can't tune to initial transponder " << initial.frequency() << std::endl;
 		std::vector<Transponder*> tp=c.scanTransponders();
 		// If we didn't get an NIT, the initial transponder is better than nothing...
-		if(tp.size() == 0)
+		if(tp.size() == 0) {
+			std::cerr << "No NIT" << std::endl;
 			tp.insert(tp.end(), &initial);
+		}
 		for(auto const &t: tp) {
 			std::cout << t->toString() << std::endl;
 		}

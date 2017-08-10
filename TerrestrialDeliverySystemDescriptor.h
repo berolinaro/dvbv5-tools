@@ -1,3 +1,5 @@
+// Some T2 information can be found at
+// https://www.dvb.org/resources/public/standards/a38_dvb-si_specification.pdf
 #pragma once
 #include "DVBDescriptor.h"
 #include "Transponder.h"
