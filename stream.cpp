@@ -124,28 +124,6 @@ int main(int argc, char **argv) {
 	bool useIPv6 = argc>1 && !strcmp(argv[1], "-6");
 	signal(SIGPIPE, SIG_IGN);
 
-	DVBInterfaces cards = DVBInterfaces::all();
-	if(!cards.size()) {
-		std::cerr << "No DVB interfaces found" << std::endl;
-		return 1;
-	}
-
-	ChannelList channels("channels.dvb");
-	if(!channels.size()) {
-		std::cerr << "No channel list - run \"scan >channels.dvb\"" << std::endl;
-		return 2;
-	}
-
-	auto channel = channels.find("Das Erste HD");
-	std::cerr << "Tuning..." << std::endl;
-	cards[0].tune(channel.first);
-	std::cerr << "Setting up channel..." << std::endl;
-	cards[0].setup(*channel.second);
-	std::cerr << "Accepting connections" << std::endl;
-
-	int dvbFd = open("/dev/dvb/adapter0/dvr0", O_RDONLY|O_NONBLOCK);
-	char dvbbuf[188];
-
 	int socksize;
 	int s;
 	union {
@@ -175,11 +153,39 @@ int main(int argc, char **argv) {
 	if(s<0)
 		std::cerr << "socket: " << strerror(errno) << std::endl;
 	int b = bind(s, &addr, socksize);
+	while(b<0 && errno == EADDRINUSE) {
+		std::cerr << "Please kill any other process using the port" << std::endl;
+		sleep(1);
+		b = bind(s, &addr, socksize);
+	}
 	if(b<0)
 		std::cerr << "bind: " << strerror(errno) << std::endl;
 	int l = listen(s, SOMAXCONN);
 	if(l<0)
 		std::cerr << "listen: " << strerror(errno) << std::endl;
+
+	DVBInterfaces cards = DVBInterfaces::all();
+	if(!cards.size()) {
+		std::cerr << "No DVB interfaces found" << std::endl;
+		return 1;
+	}
+
+	ChannelList channels("channels.dvb");
+	if(!channels.size()) {
+		std::cerr << "No channel list - run \"scan >channels.dvb\"" << std::endl;
+		return 2;
+	}
+
+	auto channel = channels.find("Das Erste HD");
+	std::cerr << "Tuning..." << std::endl;
+	cards[0].tune(channel.first);
+	std::cerr << "Setting up channel..." << std::endl;
+	cards[0].setup(*channel.second);
+	std::cerr << "Accepting connections" << std::endl;
+
+	int dvbFd = open("/dev/dvb/adapter0/dvr0", O_RDONLY|O_NONBLOCK);
+	char dvbbuf[188];
+
 
 	pollfd p[128];
 	p[0].fd = s;
