@@ -101,7 +101,7 @@ namespace Util {
 		return poll(&p, 1, timeout);
 	}
 
-	void hexdump(unsigned char const * const data, size_t size, std::ostream &where, std::string const &indent, uint8_t bytesPerRow) {
+	void hexdump(void const * const data, size_t size, std::ostream &where, std::string const &indent, uint8_t bytesPerRow) {
 		if(!size)
 			return;
 
@@ -111,7 +111,7 @@ namespace Util {
 		tmp[16]=0;
 		where << std::hex << std::setfill('0') << indent;
 		for(size_t i=0; i<size; i++) {
-			unsigned char const c=data[i];
+			unsigned char const c=static_cast<unsigned char const * const>(data)[i];
 			if(isprint(c))
 				tmp[i%bytesPerRow]=c;
 			else

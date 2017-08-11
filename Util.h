@@ -24,7 +24,7 @@ namespace Util {
 	 * @param where Destination of hex dump
 	 * @param bytesPerRow Bytes per row
 	 */
-	void hexdump(unsigned char const * const data, size_t size, std::ostream &where=std::cerr, std::string const &indent="", uint8_t bytesPerRow=16);
+	void hexdump(void const * const data, size_t size, std::ostream &where=std::cerr, std::string const &indent="", uint8_t bytesPerRow=16);
 	/**
 	 * Calculate a DVB-Compatible CRC-32 checksum
 	 * @param data Data to checksum

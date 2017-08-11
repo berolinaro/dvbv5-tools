@@ -11,7 +11,7 @@ void ServiceDescriptionTable::dump(std::ostream &where, std::string const &inden
 	Util::SaveIOState s(where);
 	DVBTable::dump(where, indent);
 	uint16_t originalNetworkId = (_data[0]<<8)+_data[1];
-	where << indent << "Original network ID" << std::hex << std::setfill('0') << std::setw(4) << originalNetworkId << std::endl;
+	where << indent << "Original network ID " << std::hex << std::setfill('0') << std::setw(4) << originalNetworkId << std::endl;
 	unsigned char *pos = _data+3;
 	while(pos < _data+_dataLength) {
 		uint16_t serviceId = (pos[0]<<8)+pos[1];

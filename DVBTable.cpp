@@ -44,7 +44,7 @@ DVBTable::DVBTable(int fd):_data(nullptr) {
 	ssize_t count;
 	unsigned char header[8];
 	do {
-		if(!Util::waitForData(fd)) {
+		if(!Util::waitForData(fd, 20000)) {
 			_tableId = Invalid;
 			return;
 		}
