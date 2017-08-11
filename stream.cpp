@@ -226,6 +226,8 @@ int main(int argc, char **argv) {
 				size_t bytes = read(dvbFd, dvbbuf, 188);
 				if(bytes>0)
 				{
+					if(dvbbuf[0] != 0x47)
+						std::cerr << "Invalid sync byte" << std::endl;
 					{
 						std::lock_guard<std::mutex> guard(newClientsMutex);
 						for(int fd: newClients) {

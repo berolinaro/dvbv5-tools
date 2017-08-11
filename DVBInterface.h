@@ -148,7 +148,6 @@ protected:
 	int openPES(dmx_pes_type_t pes);
 protected:
 	std::string _devPath;
-	int _dmxFd;
 	int _frontendFd;
 	int _pesFd[DMX_PES_OTHER+1];
 	dvb_frontend_info _feInfo;

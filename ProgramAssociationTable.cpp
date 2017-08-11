@@ -10,6 +10,7 @@ std::map<uint16_t,uint16_t> ProgramAssociationTable::pids() const {
 		return _pids;
 
 	for(uint16_t i=0; i<_dataLength; i+=4) {
+		std::cerr << "PAT: " << static_cast<int>((_data[i]<<8)+_data[i+1]) << " => " << static_cast<int>(((_data[i+2]&0b00011111)<<8)+_data[i+3]);
 		_pids.insert(std::make_pair((_data[i]<<8)+_data[i+1], ((_data[i+2]&0b00011111)<<8)+_data[i+3]));
 	}
 	return _pids;
