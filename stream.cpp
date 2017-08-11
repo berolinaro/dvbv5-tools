@@ -172,8 +172,14 @@ int main(int argc, char **argv) {
 		socksize = sizeof(addr_in);
 		s = socket(AF_INET, SOCK_STREAM, 0);
 	}
+	if(s<0)
+		std::cerr << "socket: " << strerror(errno) << std::endl;
 	int b = bind(s, &addr, socksize);
+	if(b<0)
+		std::cerr << "bind: " << strerror(errno) << std::endl;
 	int l = listen(s, SOMAXCONN);
+	if(l<0)
+		std::cerr << "listen: " << strerror(errno) << std::endl;
 
 	pollfd p[128];
 	p[0].fd = s;
@@ -200,6 +206,7 @@ int main(int argc, char **argv) {
 			{
 				std::lock_guard<std::mutex> channelGuard(newChannelMutex);
 				if(newChannel.first) {
+					cards[0].close();
 					close(dvbFd);
 					cards[0].tune(newChannel.first);
 					cards[0].setup(*newChannel.second);

@@ -226,6 +226,8 @@ bool DVBInterface::setup(Service const &s) {
 		return false;
 	}
 
+	ioctl(_dmxFd, DMX_STOP);
+
 	Program p(*pmts);
 	p.dump();
 
