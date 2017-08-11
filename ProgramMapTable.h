@@ -18,6 +18,16 @@ public:
 	bool isTeletext() const;
 	bool isSubtitle() const;
 	bool isPcr() const;
+	enum StreamType {
+		Video,
+		Audio,
+		Teletext,
+		Subtitle,
+		PCR,
+		Other,
+		Any
+	};
+	StreamType type() const;
 protected:
 	uint8_t _streamType;
 	uint16_t _pid;

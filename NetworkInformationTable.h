@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DVBTable.h"
+#include "Transponder.h"
 #include <map>
 
 extern "C" {

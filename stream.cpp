@@ -1,10 +1,13 @@
 #include "DVBInterface.h"
 #include "ChannelList.h"
+#include "ProgramAssociationTable.h"
+#include "ProgramMapTable.h"
 #include "Util.h"
 #include <iostream>
 #include <fstream>
 #include <cstring>
 #include <thread>
+#include <set>
 #include <mutex>
 
 extern "C" {
@@ -16,9 +19,10 @@ extern "C" {
 }
 
 std::mutex newClientsMutex;
-std::vector<int> newClients;
-std::mutex newChannelMutex;
-auto newChannel = std::make_pair<Transponder const *,Service const *>(nullptr, nullptr);
+std::map<int,std::string> newClients;
+Transponder const *currentTransponder = nullptr;
+std::map<int,std::set<int>> watchers;
+int threadNotify[2];
 
 void httpThread(int fd) {
 	pollfd p;
@@ -45,7 +49,6 @@ void httpThread(int fd) {
 			complete = ((count>=2) && buf[count-2]=='\n' && buf[count-1]=='\n') || ((count == 1) && buf[0] == '\n');
 			char *line = strtok_r(buf, "\n", &tmp);
 			while(line) {
-				Util::hexdump(reinterpret_cast<unsigned char*>(line), strlen(line));
 				bool curHead = !strncasecmp(line, "HEAD ", 5);
 				bool curGet = !strncasecmp(line, "GET ", 4);
 				if(curHead || curGet) {
@@ -85,27 +88,18 @@ void httpThread(int fd) {
 	}
 	if(complete) {
 		std::cerr << "Got request for " << path << std::endl;
-		ChannelList channels("channels.dvb");
-		auto channel = channels.find(path);
-		if(!channel.first)
-			std::cerr << "No such channel!" << std::endl;
 		if(isGet || isHead) {
 			send(fd, "HTTP/1.1 200 OK\r\n", 17, 0);
 			send(fd, "Cache-Control: no-store, no-cache\r\n", 35, 0);
-			send(fd, "Content-Type: video/mp2t\r\n", 26, 0);
+			send(fd, "Content-Type: video/MP2T\r\n", 26, 0);
 			send(fd, "\r\n", 2, 0);
 			if(isGet) {
-				// FIXME don't allow switching the channel if we're already
-				// streaming to someone else...
-				{
-					std::lock_guard<std::mutex> channelGuard(newChannelMutex);
-					newChannel = channel;
-				}
 				// Start sending the stream...
 				{
 					std::lock_guard<std::mutex> guard(newClientsMutex);
-					newClients.push_back(fd);
+					newClients.insert_or_assign(fd, path);
 				}
+				write(threadNotify[1], "x", 1);
 				std::cerr << "Client added" << std::endl;
 			} else {
 				close(fd);
@@ -176,29 +170,33 @@ int main(int argc, char **argv) {
 		return 2;
 	}
 
-	auto channel = channels.find("Das Erste HD");
-	std::cerr << "Tuning..." << std::endl;
-	cards[0].tune(channel.first);
-	std::cerr << "Setting up channel..." << std::endl;
-	cards[0].setup(*channel.second);
-	std::cerr << "Accepting connections" << std::endl;
-
 	int dvbFd = open("/dev/dvb/adapter0/dvr0", O_RDONLY|O_NONBLOCK);
 	char dvbbuf[188];
 
+	pipe(threadNotify);
 
 	pollfd p[128];
 	p[0].fd = s;
 	p[0].events = POLLIN;
 	p[1].fd = dvbFd;
 	p[1].events = POLLIN;
-	int nfds = 2;
+	p[2].fd = threadNotify[0];
+	p[2].events = POLLIN;
+	int nfds = 3;
+
+	ProgramAssociationTables *pats;
 
 	while(true) {
 		if(poll(p, nfds, 10000) > 0) {
-			for(int i=2; i<nfds; i++) {
+			// Close connections to disconnected clients
+			for(int i=3; i<nfds; i++) {
 				if(p[i].revents & POLLHUP) {
 					close(p[i].fd);
+					for(auto w: watchers) {
+						auto entry = w.second.find(p[i].fd);
+						if(entry != w.second.end())
+							w.second.erase(entry);
+					}
 					memmove(&p[i], &p[i+1], sizeof(pollfd)*(nfds-i));
 					nfds--; i--;
 					std::cerr << "Client disconnected" << std::endl;
@@ -209,37 +207,74 @@ int main(int argc, char **argv) {
 				int conn = accept(s, &dest, &ss);
 				std::thread *http = new std::thread(&httpThread, conn);
 			}
-			{
-				std::lock_guard<std::mutex> channelGuard(newChannelMutex);
-				if(newChannel.first) {
-					cards[0].close();
-					close(dvbFd);
-					cards[0].tune(newChannel.first);
-					cards[0].setup(*newChannel.second);
-					newChannel=std::make_pair<Transponder const *, Service const *>(nullptr, nullptr);
-					dvbFd = open("/dev/dvb/adapter0/dvr0", O_RDONLY|O_NONBLOCK);
-					p[1].fd = dvbFd;
-					continue;
-				}
-			}
 			if(p[1].revents & POLLIN) {
-				size_t bytes = read(dvbFd, dvbbuf, 188);
+				size_t const bytes = read(dvbFd, dvbbuf, 188);
 				if(bytes>0)
 				{
 					if(dvbbuf[0] != 0x47)
 						std::cerr << "Invalid sync byte" << std::endl;
-					{
-						std::lock_guard<std::mutex> guard(newClientsMutex);
-						for(int fd: newClients) {
-							p[nfds].fd = fd;
-							p[nfds++].events = POLLOUT|POLLHUP;
-						}
-						newClients=std::vector<int>();
-					}
-					for(int i=2; i<nfds; i++)
-						write(p[i].fd, dvbbuf, bytes);
+					uint16_t const pid = ((dvbbuf[1]&0b00011111)<<8)|dvbbuf[2];
+					auto w = watchers.find(pid);
+					if(w != watchers.end())
+						for(int fd: w->second)
+							write(fd, dvbbuf, bytes);
 				}
 			}
+		}
+		// Check for new connections
+		{
+			std::lock_guard<std::mutex> guard(newClientsMutex);
+			for(auto c: newClients) {
+				std::cerr << "Looking at new requests" << std::endl;
+				auto newChannel = channels.find(c.second);
+				if(newChannel.first)
+					std::cerr << "Valid channel " << c.second << std::endl;
+				else
+					std::cerr << "Invalid channel " << c.second << std::endl;
+
+				if(!currentTransponder || (*currentTransponder != *newChannel.first)) {
+					std::cerr << "Switching transponder" << std::endl;
+					// FIXME no way to switch transponders gracefully... Probably shouldn't
+					// allow this to everyone!
+					for(int i=3; i<nfds; i++)
+						close(p[i].fd);
+					nfds = 3;
+					cards[0].tune(newChannel.first);
+					currentTransponder = newChannel.first;
+
+					FD patDmx(cards[0].open("demux0", O_RDWR|O_NONBLOCK));
+					pats = DVBTables<ProgramAssociationTable>::read<ProgramAssociationTables>(patDmx);
+				} else
+					std::cerr << "Staying on current transponder" << std::endl;
+				if(pats) {
+					std::map<uint16_t,uint16_t> PMTPids = pats->pids();
+					if(PMTPids.find(newChannel.second->serviceId()) == PMTPids.end())
+						std::cerr << "new channel invalid" << std::endl;
+					else {
+						FD pmtDmx(cards[0].open("demux0", O_RDWR|O_NONBLOCK));
+						ProgramMapTables *pmts = DVBTables<ProgramMapTable>::read<ProgramMapTables>(pmtDmx, PMTPids[newChannel.second->serviceId()]);
+						if(!pmts)
+							std::cerr << "No PMT for " << newChannel.second->serviceId() << std::endl;
+						else {
+							Program p(*pmts);
+							for(Stream s: p.streams()) {
+								if(watchers.find(s.pid()) == watchers.end()) {
+									if(cards[0].addPES(s.type(), s.pid(), true)) {
+										std::set<int> w;
+										w.insert(w.end(), c.first);
+										watchers.insert_or_assign(s.pid(), w);
+									}
+								} else
+									watchers[s.pid()].insert(watchers[s.pid()].end(), c.first);
+							}
+						}
+					}
+				} else
+					std::cerr << "No PAT" << std::endl;
+				p[nfds].fd = c.first;
+				p[nfds++].events = POLLOUT|POLLHUP;
+			}
+			newClients.clear();
 		}
 	}
 }

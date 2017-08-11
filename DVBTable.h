@@ -7,7 +7,7 @@
 #include <type_traits>
 #include <cstring>
 #include <cstdint>
-#include "DVBInterface.h"
+#include "PIDs.h"
 
 extern "C" {
 #include <linux/dvb/frontend.h>

@@ -225,26 +225,13 @@ bool DVBInterface::setup(Service const &s) {
 	Program p(*pmts);
 	p.dump();
 
-	addPES(PCR, p.pcrPid());
-	for(auto s: p.streams()) {
-		uint16_t const pid = s.pid();
-		if(s.isAudio())
-			addPES(Audio, pid);
-		else if(s.isVideo())
-			addPES(Video, pid);
-		else if(s.isTeletext())
-			addPES(Teletext, pid);
-		else if(s.isSubtitle())
-			addPES(Subtitle, pid);
-		else if(s.isPcr())
-			addPES(PCR, pid);
-		else
-			addPES(Other, pid);
-	}
+	addPES(Stream::PCR, p.pcrPid());
+	for(auto s: p.streams())
+		addPES(s.type(), s.pid());
 	return true;
 }
 
-bool DVBInterface::addPES(StreamType t, uint16_t pid, bool fallbackToAny) {
+bool DVBInterface::addPES(Stream::StreamType t, uint16_t pid, bool fallbackToAny) {
 	// The code below assumes that dmx_pes_type_t is a list of
 	// audio, video, teletext, subtitle, pcr, audio, video, ...
 	// If the layout of dmx_pes_type_t ever changes in the kernel,
@@ -261,41 +248,41 @@ bool DVBInterface::addPES(StreamType t, uint16_t pid, bool fallbackToAny) {
 	f.pes_type = DMX_PES_PCR0;
 	f.flags = DMX_CHECK_CRC|DMX_IMMEDIATE_START;
 	switch(t) {
-	case Audio:
+	case Stream::Audio:
 		f.pes_type = DMX_PES_AUDIO0;
 		while(f.pes_type<=DMX_PES_OTHER && _pesFd[f.pes_type]>=0)
 			f.pes_type = static_cast<dmx_pes_type_t>(f.pes_type+DMX_PES_AUDIO1-DMX_PES_AUDIO0);
 		break;
-	case Video:
+	case Stream::Video:
 		f.pes_type = DMX_PES_VIDEO0;
 		while(f.pes_type<=DMX_PES_OTHER && _pesFd[f.pes_type]>=0)
 			f.pes_type = static_cast<dmx_pes_type_t>(f.pes_type+DMX_PES_VIDEO1-DMX_PES_VIDEO0);
 		break;
-	case Teletext:
+	case Stream::Teletext:
 		f.pes_type = DMX_PES_TELETEXT0;
 		while(f.pes_type<=DMX_PES_OTHER && _pesFd[f.pes_type]>=0)
 			f.pes_type = static_cast<dmx_pes_type_t>(f.pes_type+DMX_PES_TELETEXT1-DMX_PES_TELETEXT0);
 		break;
-	case Subtitle:
+	case Stream::Subtitle:
 		f.pes_type = DMX_PES_SUBTITLE0;
 		while(f.pes_type<=DMX_PES_OTHER && _pesFd[f.pes_type]>=0)
 			f.pes_type = static_cast<dmx_pes_type_t>(f.pes_type+DMX_PES_SUBTITLE1-DMX_PES_SUBTITLE0);
 		break;
-	case PCR:
+	case Stream::PCR:
 		f.pes_type = DMX_PES_PCR0;
 		while(f.pes_type<=DMX_PES_OTHER && _pesFd[f.pes_type]>=0)
 			f.pes_type = static_cast<dmx_pes_type_t>(f.pes_type+DMX_PES_PCR1-DMX_PES_PCR0);
 		break;
-	case Other:
+	case Stream::Other:
 		if(_pesFd[DMX_PES_OTHER]>=0)
 			f.pes_type = static_cast<dmx_pes_type_t>(DMX_PES_OTHER+1);
 		else
 			f.pes_type = DMX_PES_OTHER;
 		break;
-	case Any:
+	case Stream::Any:
 		break;
 	}
-	if(t == Any ||
+	if(t == Stream::Any ||
 			(fallbackToAny &&
 			 (f.pes_type > DMX_PES_OTHER ||
 			  _pesFd[f.pes_type]>=0))) {

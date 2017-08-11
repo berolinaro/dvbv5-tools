@@ -7,35 +7,14 @@
 #include "FD.h"
 #include "Transponder.h"
 #include "Service.h"
+#include "ProgramMapTable.h"
+#include "PIDs.h"
 
 extern "C" {
 #include <linux/dvb/frontend.h>
 #include <linux/dvb/dmx.h>
 #include <fcntl.h>
 }
-
-/**
- * PIDs (Program Identifiers) of standard tables that are parts
- * of the DVB specs
- */
-enum PIDs {
-	/// Program Association Table, ETSI EN 300 468 v1.15.1
-	PAT = 0x0000,
-	/// Conditional Access Table (optional), ETSI EN 300 468 v1.15.1
-	CAT = 0x0001,
-	/// Transport Streams Description Table, ETSI EN 300 468 v1.15.1
-	TSDT = 0x0002,
-	/// Network Information Table, ETSI EN 300 468 v1.15.1
-	NIT = 0x0010,
-	/// Time and Date Table, ETSI EN 300 468 v1.15.1
-	TDT = 0x0014,
-	/// Service Description Table, ETSI EN 300 468 v1.15.1
-	SDT = 0x0011,
-	/// Event Information Table (optional), ETSI EN 300 468 v1.15.1
-	EIT = 0x0012,
-	/// Running Status Table (optional), ETSI EN 300 468 v1.15.1
-	RST = 0x0013
-};
 
 class DVBInterface {
 public:
@@ -138,22 +117,13 @@ public:
 	 * Set up the DVR device for retrieving the specified channel
 	 */
 	bool setup(Service const &s);
-	enum StreamType {
-		Video,
-		Audio,
-		Teletext,
-		Subtitle,
-		PCR,
-		Other,
-		Any
-	};
-	bool addPES(StreamType t, uint16_t pid, bool fallbackToAny=false);
+	bool addPES(Stream::StreamType t, uint16_t pid, bool fallbackToAny=false);
 	std::vector<Transponder*> scanTransponders();
 
 	void scan();
 	std::vector<Service> scanTransponder();
-protected:
 	int open(std::string const &dev, int mode = O_RDONLY) const;
+protected:
 	int openPES(dmx_pes_type_t pes);
 protected:
 	std::string _devPath;

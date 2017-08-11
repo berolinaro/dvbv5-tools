@@ -182,6 +182,20 @@ bool Stream::isPcr() const {
 	return false;
 }
 
+Stream::StreamType Stream::type() const {
+	if(isAudio())
+		return Audio;
+	else if(isVideo())
+		return Video;
+	else if(isTeletext())
+		return Teletext;
+	else if(isSubtitle())
+		return Subtitle;
+	else if(isPcr())
+		return PCR;
+	return Other;
+}
+
 void Program::dump(std::ostream &where, std::string const &indent) const {
 	Util::SaveIOState s(where);
 	where << std::hex << std::setfill('0');
