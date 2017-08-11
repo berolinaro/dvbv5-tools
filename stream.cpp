@@ -146,18 +146,13 @@ int main(int argc, char **argv) {
 
 	while(true) {
 		if(poll(p, nfds, 10000) > 0) {
-			std::vector<int> disconnectedClients;
 			for(int i=2; i<nfds; i++) {
 				if(p[i].revents & POLLHUP) {
-					std::cerr << "Client disconnected" << std::endl;
-					disconnectedClients.push_back(i);
-				}
-			}
-			for(int i: disconnectedClients) {
-				close(p[i].fd);
-				if(i<(nfds-1))
+					close(p[i].fd);
 					memmove(&p[i], &p[i+1], sizeof(pollfd)*(nfds-i));
-				nfds--;
+					nfds--; i--;
+					std::cerr << "Client disconnected" << std::endl;
+				}
 			}
 			if(p[0].revents & POLLIN) {
 				socklen_t ss;
