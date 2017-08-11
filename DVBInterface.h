@@ -138,7 +138,16 @@ public:
 	 * Set up the DVR device for retrieving the specified channel
 	 */
 	bool setup(Service const &s);
-
+	enum StreamType {
+		Video,
+		Audio,
+		Teletext,
+		Subtitle,
+		PCR,
+		Other,
+		Any
+	};
+	bool addPES(StreamType t, uint16_t pid, bool fallbackToAny=false);
 	std::vector<Transponder*> scanTransponders();
 
 	void scan();

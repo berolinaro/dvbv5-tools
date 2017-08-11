@@ -225,79 +225,97 @@ bool DVBInterface::setup(Service const &s) {
 	Program p(*pmts);
 	p.dump();
 
-	dmx_pes_filter_params f;
-	f.pid = p.pcrPid();
-	f.input = DMX_IN_FRONTEND;
-	f.output = DMX_OUT_TS_TAP;
-	f.pes_type = DMX_PES_PCR0;
-	f.flags = DMX_CHECK_CRC|DMX_IMMEDIATE_START;
-	openPES(f.pes_type);
-	ioctl(_pesFd[f.pes_type], DMX_SET_PES_FILTER, &f);
-
-	dmx_pes_type_t audioFilter = DMX_PES_AUDIO0,
-		videoFilter = DMX_PES_VIDEO0,
-		teletextFilter = DMX_PES_TELETEXT0,
-		subtitleFilter = DMX_PES_SUBTITLE0,
-		pcrFilter = DMX_PES_PCR1;
-
+	addPES(PCR, p.pcrPid());
 	for(auto s: p.streams()) {
-		// The code below assumes that dmx_pes_type_t is a list of
-		// audio, video, teletext, subtitle, pcr, audio, video, ...
-		// If the layout of dmx_pes_type_t ever changes in the kernel,
-		// we need to make some adjustments here.
-		// In the mean time, this calculation is better than going from
-		// hardcoded DMX_PES_AUDIO0 to DMX_PES_AUDIO1 to DMX_PES_AUDIO2
-		// etc. -- our way automatically supports DMX_PES_AUDIO4 etc.
-		// if the API is ever extended to handle more than 4 concurrent
-		// streams of each type.
-		if(s.isAudio()) {
-			std::cerr << "Audio PID " << s.pid() << std::endl;
-			if(audioFilter > DMX_PES_OTHER)
-				continue;
-			f.pes_type = audioFilter;
-			audioFilter = static_cast<dmx_pes_type_t>(audioFilter+DMX_PES_AUDIO1-DMX_PES_AUDIO0);
-		} else if(s.isVideo()) {
-			std::cerr << "Video PID " << s.pid() << std::endl;
-			if(videoFilter > DMX_PES_OTHER)
-				continue;
-			f.pes_type = videoFilter;
-			videoFilter = static_cast<dmx_pes_type_t>(videoFilter+DMX_PES_VIDEO1-DMX_PES_VIDEO0);
-		} else if(s.isTeletext()) {
-			std::cerr << "Teletext PID " << s.pid() << std::endl;
-			if(teletextFilter > DMX_PES_OTHER)
-				continue;
-			f.pes_type = teletextFilter;
-			teletextFilter = static_cast<dmx_pes_type_t>(teletextFilter+DMX_PES_TELETEXT1-DMX_PES_TELETEXT0);
-		} else if(s.isSubtitle()) {
-			std::cerr << "Subtitle PID " << s.pid() << std::endl;
-			if(subtitleFilter > DMX_PES_OTHER)
-				continue;
-			f.pes_type = subtitleFilter;
-			subtitleFilter = static_cast<dmx_pes_type_t>(subtitleFilter+DMX_PES_SUBTITLE1-DMX_PES_SUBTITLE0);
-		} else if(s.isPcr()) {
-			std::cerr << "PCR PID " << s.pid() << std::endl;
-			if(pcrFilter > DMX_PES_OTHER)
-				continue;
-			f.pes_type = pcrFilter;
-			pcrFilter = static_cast<dmx_pes_type_t>(pcrFilter+DMX_PES_PCR1-DMX_PES_PCR0);
-		} else {
-			std::cerr << "Other PID (type " << static_cast<int>(s.streamType()) << ") " << s.pid() << std::endl;
-			f.pes_type = DMX_PES_OTHER;
-		}
-		f.pid = s.pid();
-		if(_pesFd[f.pes_type]>=0)
-			continue;
-		openPES(f.pes_type);
-		if(_pesFd[f.pes_type] < 0)
-			std::cerr << strerror(errno) << std::endl;
-		ioctl(_pesFd[f.pes_type], DMX_SET_PES_FILTER, &f);
+		uint16_t const pid = s.pid();
+		if(s.isAudio())
+			addPES(Audio, pid);
+		else if(s.isVideo())
+			addPES(Video, pid);
+		else if(s.isTeletext())
+			addPES(Teletext, pid);
+		else if(s.isSubtitle())
+			addPES(Subtitle, pid);
+		else if(s.isPcr())
+			addPES(PCR, pid);
+		else
+			addPES(Other, pid);
 	}
 	return true;
 }
 
+bool DVBInterface::addPES(StreamType t, uint16_t pid, bool fallbackToAny) {
+	// The code below assumes that dmx_pes_type_t is a list of
+	// audio, video, teletext, subtitle, pcr, audio, video, ...
+	// If the layout of dmx_pes_type_t ever changes in the kernel,
+	// we need to make some adjustments here.
+	// In the mean time, this calculation is better than going from
+	// hardcoded DMX_PES_AUDIO0 to DMX_PES_AUDIO1 to DMX_PES_AUDIO2
+	// etc. -- our way automatically supports DMX_PES_AUDIO4 etc.
+	// if the API is ever extended to handle more than 4 concurrent
+	// streams of each type.
+	dmx_pes_filter_params f;
+	f.pid = pid;
+	f.input = DMX_IN_FRONTEND;
+	f.output = DMX_OUT_TS_TAP;
+	f.pes_type = DMX_PES_PCR0;
+	f.flags = DMX_CHECK_CRC|DMX_IMMEDIATE_START;
+	switch(t) {
+	case Audio:
+		f.pes_type = DMX_PES_AUDIO0;
+		while(f.pes_type<=DMX_PES_OTHER && _pesFd[f.pes_type]>=0)
+			f.pes_type = static_cast<dmx_pes_type_t>(f.pes_type+DMX_PES_AUDIO1-DMX_PES_AUDIO0);
+		break;
+	case Video:
+		f.pes_type = DMX_PES_VIDEO0;
+		while(f.pes_type<=DMX_PES_OTHER && _pesFd[f.pes_type]>=0)
+			f.pes_type = static_cast<dmx_pes_type_t>(f.pes_type+DMX_PES_VIDEO1-DMX_PES_VIDEO0);
+		break;
+	case Teletext:
+		f.pes_type = DMX_PES_TELETEXT0;
+		while(f.pes_type<=DMX_PES_OTHER && _pesFd[f.pes_type]>=0)
+			f.pes_type = static_cast<dmx_pes_type_t>(f.pes_type+DMX_PES_TELETEXT1-DMX_PES_TELETEXT0);
+		break;
+	case Subtitle:
+		f.pes_type = DMX_PES_SUBTITLE0;
+		while(f.pes_type<=DMX_PES_OTHER && _pesFd[f.pes_type]>=0)
+			f.pes_type = static_cast<dmx_pes_type_t>(f.pes_type+DMX_PES_SUBTITLE1-DMX_PES_SUBTITLE0);
+		break;
+	case PCR:
+		f.pes_type = DMX_PES_PCR0;
+		while(f.pes_type<=DMX_PES_OTHER && _pesFd[f.pes_type]>=0)
+			f.pes_type = static_cast<dmx_pes_type_t>(f.pes_type+DMX_PES_PCR1-DMX_PES_PCR0);
+		break;
+	case Other:
+		if(_pesFd[DMX_PES_OTHER]>=0)
+			f.pes_type = static_cast<dmx_pes_type_t>(DMX_PES_OTHER+1);
+		else
+			f.pes_type = DMX_PES_OTHER;
+		break;
+	case Any:
+		break;
+	}
+	if(t == Any ||
+			(fallbackToAny &&
+			 (f.pes_type > DMX_PES_OTHER ||
+			  _pesFd[f.pes_type]>=0))) {
+		f.pes_type = static_cast<dmx_pes_type_t>(DMX_PES_OTHER+1);
+		for(int i=0; i<=DMX_PES_OTHER; i++)
+			if(_pesFd[i]<0)
+				f.pes_type = static_cast<dmx_pes_type_t>(i);
+	}
+	if(f.pes_type > DMX_PES_OTHER)
+		return false;
+	openPES(f.pes_type);
+	ioctl(_pesFd[f.pes_type], DMX_SET_PES_FILTER, &f);
+	return true;
+}
+
 int DVBInterface::openPES(dmx_pes_type_t pes) {
-	if(_pesFd[pes]>=0)
+	if(_pesFd[pes]>=0) {
+		ioctl(_pesFd[pes], DMX_STOP);
 		::close(_pesFd[pes]);
+	}
 	return _pesFd[pes] = open("demux0", O_RDWR);
 }
 
