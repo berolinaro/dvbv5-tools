@@ -17,6 +17,8 @@ public:
 	enum Polarization { Off = 0, Horizontal = 0b1, Vertical = 0b10, Left = 0b100, Right = 0b1000, Any = 0b1111 };
 	Lnb(std::vector<FrequencyRange> const &fr):std::vector<FrequencyRange>(fr) {}
 	uint32_t frequencyOffset(DVBSTransponder const &t) const;
+	bool isHighBand(DVBSTransponder const &t) const;
+
 	static const Lnb Universal;
 	static const Lnb Expressvu;
 	static const Lnb Extended;

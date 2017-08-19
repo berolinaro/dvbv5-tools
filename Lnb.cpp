@@ -9,6 +9,11 @@ uint32_t Lnb::frequencyOffset(DVBSTransponder const &t) const {
 	return 0;
 }
 
+bool Lnb::isHighBand(DVBSTransponder const &t) const {
+	auto f = *begin();
+	return f.rangeswitch && t.frequency() >= f.rangeswitch;
+}
+
 const Lnb Lnb::Universal = std::vector<FrequencyRange>{
 	{ 10800000, 11800000, 9750000, 11700000, Lnb::Any },
 	{ 11600000, 12700000, 10600000, 0, Lnb::Any }

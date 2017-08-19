@@ -50,7 +50,8 @@ Transponder *Transponder::fromString(std::string const &t) {
 			return new DVBT2Transponder(freq, bandwidth, codeRateHp, codeRateLp, mode, guardInterval, hierarchy, mod, inv);
 		else
 			return new DVBTTransponder(freq, bandwidth, codeRateHp, codeRateLp, mode, guardInterval, hierarchy, mod, inv);
-	} else if(part == "S") {
+	} else if(part == "S" || part == "S2") {
+		bool S2 = (part == "T2");
 		std::getline(iss, part, '\t');
 		uint32_t freq = std::stoi(part);
 		if(!freq)
@@ -63,7 +64,10 @@ Transponder *Transponder::fromString(std::string const &t) {
 		fe_code_rate fec = static_cast<fe_code_rate>(std::stoi(part));
 		std::getline(iss, part, '\t');
 		fe_spectral_inversion inv = static_cast<fe_spectral_inversion>(std::stoi(part));
-		return new DVBSTransponder(freq, srate, polar, fec, inv);
+		if(S2)
+			return new DVBS2Transponder(freq, srate, polar, fec, inv);
+		else
+			return new DVBSTransponder(freq, srate, polar, fec, inv);
 	}
 	return nullptr;
 }
@@ -244,8 +248,82 @@ DVBSTransponder::DVBSTransponder(uint32_t frequency, uint32_t srate, Lnb::Polari
 bool DVBSTransponder::tune(DVBInterface * const device, uint32_t timeout) const {
 	Lnb const *lnb = device->lnb();
 	uint32_t offset = lnb ? lnb->frequencyOffset(*this) : 0;
+	bool highBand = lnb ? lnb->isHighBand(*this) : false;
 	_props.props[0].u.data -= offset; // FIXME number needs to be determined from LNB
+
+	// DiSEqC commands to prepare LNB...
+	// Documentation at
+	// http://www.eutelsat.com/files/contributed/satellites/pdf/Diseqc/Reference%20docs/bus_spec.pdf
+	//
+	// Kaffeine strace shows:
+	// S 11836500 H 27500000 3/4
+	// 	SET_VOLTAGE OFF
+	// 	SET_VOLTAGE 18
+	// 	SET_TONE 1
+	// 	DISEQC_SEND_MASTER_CMD e0 10 38 f3
+	// 	DISEQC_SEND_BURST 0
+	// 	SET_TONE 0
+	// S2 11493750 H 22000000 2/3 35 8PSK
+	// 	SET_VOLTAGE OFF
+	// 	SET_VOLTAGE 18
+	// 	SET_TONE 1
+	// 	DISEQC_SEND_MASTER_CMD e0 10 38 f2
+	// 	DISEQC_SEND_BURST 0
+	// 	SET_TONE 1
+	// S 11626500 V 22000000 5/6
+	// 	SET_VOLTAGE OFF
+	// 	SET_VOLTAGE 13
+	// 	SET TONE 1
+	// 	DISEQC_SEND_MASTER_CMD e0 10 38 f0
+	// 	DISEQC_SEND_BURST 0
+	// 	SET_TONE 1
+
+	ioctl(device->frontendFd(), FE_SET_VOLTAGE, SEC_VOLTAGE_OFF);
+	ioctl(device->frontendFd(), FE_SET_VOLTAGE, (polarization() == Lnb::Vertical || polarization() == Lnb::Right) ? SEC_VOLTAGE_13 : SEC_VOLTAGE_18);
+	ioctl(device->frontendFd(), FE_SET_TONE, SEC_TONE_OFF);
+
+	usleep(15000);
+
+	dvb_diseqc_master_cmd cmd;
+	cmd.msg_len = 4;
+	// Framing:
+	// Top 4 bits: command init
+	//     5     : currently 0, reserved for future commands
+	//     6     : 0 if message originates from master, 1 for reply from slave
+	//     7     : 1 if reply expected
+	//     8     : 1 if it's a retransmission
+	cmd.msg[0] = 0b11100000;
+	// Address:
+	// Top 4 bits:    Family to which the slave belongs
+	// Bottom 4 bits: sub-type for some applications
+	// 0001 0000 = Any LNB, Switcher or SMATV
+	cmd.msg[1] = 0b00010000;
+	// Command
+	// According to spec, 0x21 == Select vertical/right polarization
+	//                    0x25 == Select horizontal/left polarization
+	// Kaffeine sends 0x38 0xfX 0xXX -- Write to Port Group 0 (Committed switches)
+	cmd.msg[2] = 0x38;
+	// 0b1111     --> clear all
+	//       ab   --> Satellite number
+	//         c  --> 1 == vertical
+	//          d --> 1 == high band
+	cmd.msg[3] = 0b11110000;
+	if(polarization() == Lnb::Horizontal || polarization() == Lnb::Right)
+		cmd.msg[3] |= 0b10;
+	if(highBand)
+		cmd.msg[3] |= 0b1;
+
+	for(int i=0; i<cmd.msg_len; i++)
+		fprintf(stderr, "%02x ", cmd.msg[i]);
+	fprintf(stderr, "\n");
+	ioctl(device->frontendFd(), FE_DISEQC_SEND_MASTER_CMD, &cmd);
+	usleep(15000);
+
+	ioctl(device->frontendFd(), FE_DISEQC_SEND_BURST, SEC_MINI_A); // FIXME when do we have to send SEC_MINI_B?
+	ioctl(device->frontendFd(), FE_SET_TONE, SEC_TONE_OFF); // FIXME do we ever have to send SEC_TONE_ON?
+
 	bool ret = Transponder::tune(device, timeout);
+
 	_props.props[0].u.data += offset;
 	return ret;
 }
@@ -273,7 +351,7 @@ DVBS2Transponder::DVBS2Transponder(uint32_t frequency, uint32_t srate, Lnb::Pola
 }
 
 std::string DVBS2Transponder::toString() const {
-	return std::string("S") + "\t" + std::to_string(frequency()) + "\t" + std::to_string(symbolRate()) + "\t" + std::to_string(polarization()) + "\t" + std::to_string(fec()) + "\t" + std::to_string(inversion());
+	return std::string("S2") + "\t" + std::to_string(frequency()) + "\t" + std::to_string(symbolRate()) + "\t" + std::to_string(polarization()) + "\t" + std::to_string(fec()) + "\t" + std::to_string(inversion());
 }
 
 std::ostream &operator<<(std::ostream &os, DVBS2Transponder const &t) {
