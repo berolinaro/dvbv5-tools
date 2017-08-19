@@ -319,8 +319,8 @@ bool DVBSTransponder::tune(DVBInterface * const device, uint32_t timeout) const 
 	ioctl(device->frontendFd(), FE_DISEQC_SEND_MASTER_CMD, &cmd);
 	usleep(15000);
 
-	ioctl(device->frontendFd(), FE_DISEQC_SEND_BURST, SEC_MINI_A); // FIXME when do we have to send SEC_MINI_B?
-	ioctl(device->frontendFd(), FE_SET_TONE, SEC_TONE_OFF); // FIXME do we ever have to send SEC_TONE_ON?
+	ioctl(device->frontendFd(), FE_DISEQC_SEND_BURST, SEC_MINI_A); // FIXME SEC_MINI_B seems to be 2nd satellite for multi-satellite receivers
+	ioctl(device->frontendFd(), FE_SET_TONE, highBand ? SEC_TONE_ON : SEC_TONE_OFF);
 
 	bool ret = Transponder::tune(device, timeout);
 
