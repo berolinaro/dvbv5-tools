@@ -5,7 +5,8 @@
 int main(int argc, char **argv) {
 //	DVBCTransponder initial(618000000, 6900000, QAM_256, FEC_NONE);
 //	DVBTTransponder initial(530000000, 8000000, FEC_2_3, FEC_AUTO, TRANSMISSION_MODE_8K, GUARD_INTERVAL_1_4, HIERARCHY_NONE, QAM_16, INVERSION_AUTO);
-	DVBT2Transponder initial(506000000, 8000000);
+//	DVBT2Transponder initial(506000000, 8000000);
+	DVBSTransponder initial(12551500, 22000000, Lnb::Vertical, FEC_5_6, INVERSION_AUTO);
 	DVBInterfaces cards = DVBInterfaces::all();
 	if(cards.size() == 0) {
 		std::cerr << "No DVB interfaces found" << std::endl;
@@ -18,7 +19,7 @@ int main(int argc, char **argv) {
 		std::vector<Transponder*> tp=c.scanTransponders();
 		// If we didn't get an NIT, the initial transponder is better than nothing...
 		if(tp.size() == 0) {
-			std::cerr << "No NIT" << std::endl;
+			std::cerr << "No NIT on initial transponder" << std::endl;
 			tp.insert(tp.end(), &initial);
 		}
 		for(auto const &t: tp) {

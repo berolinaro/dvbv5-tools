@@ -28,9 +28,10 @@ DVBInterface::DVBInterface(int num, std::string const devPath):_frontendFd(-1),_
 
 	memset(&_feInfo, 0, sizeof(dvb_frontend_info));
 
-	FD fd = open("frontend0", O_RDWR);
+	int fd = open("frontend0", O_RDWR);
 	if(fd >= 0) {
 		ioctl(fd, FE_GET_INFO, &_feInfo);
+		::close(fd);
 	}
 
 	if(canQPSK())
@@ -94,10 +95,7 @@ int DVBInterface::open(std::string const &dev, int mode) const {
 }
 
 bool DVBInterface::resetDiseqcOverload() const {
-	FD fd = open("frontend0", O_RDWR);
-	if(fd >= 0)
-		return !ioctl(fd, FE_DISEQC_RESET_OVERLOAD);
-	return false;
+	return !ioctl(frontendFd(), FE_DISEQC_RESET_OVERLOAD);
 }
 
 bool DVBInterface::tune(Transponder const &t, uint32_t timeout) {
@@ -129,7 +127,7 @@ using namespace std;
 #include <cassert>
 
 std::vector<Service> DVBInterface::scanTransponder() {
-	FD dmx(open("demux0", O_RDWR|O_NONBLOCK));
+	int dmx = open("demux0", O_RDWR|O_NONBLOCK);
 	if(dmx < 0)
 		return std::vector<Service>();
 #if 0
@@ -162,6 +160,7 @@ std::vector<Service> DVBInterface::scanTransponder() {
 #endif
 
 	ServiceDescriptionTables *sdts = DVBTables<ServiceDescriptionTable>::read<ServiceDescriptionTables>(dmx);
+	::close(dmx);
 	if(!sdts)
 		return std::vector<Service>();
 	std::vector<Service> services=sdts->services();
@@ -170,10 +169,11 @@ std::vector<Service> DVBInterface::scanTransponder() {
 }
 
 void DVBInterface::scan() {
-	FD dmx(open("demux0", O_RDWR|O_NONBLOCK));
+	int dmx = open("demux0", O_RDWR|O_NONBLOCK);
 	if(dmx < 0)
 		return;
-	NetworkInformationTables *nits = DVBTables<NetworkInformationTable>::read<NetworkInformationTables>(dmx);
+	NetworkInformationTables *nits = DVBTables<NetworkInformationTable>::read<NetworkInformationTables>(dmx, nitPID());
+	::close(dmx);
 	if(!nits)
 		return;
 	nits->dump();
@@ -187,8 +187,9 @@ void DVBInterface::scan() {
 }
 
 bool DVBInterface::setup(Service const &s) {
-	FD dmx(open("demux0", O_RDWR|O_NONBLOCK));
+	int dmx = open("demux0", O_RDWR|O_NONBLOCK);
 	ProgramAssociationTables *pats = DVBTables<ProgramAssociationTable>::read<ProgramAssociationTables>(dmx);
+	::close(dmx);
 	if(!pats)
 		return false;
 	std::map<uint16_t,uint16_t> PMTPids = pats->pids();
@@ -197,15 +198,14 @@ bool DVBInterface::setup(Service const &s) {
 		std::cerr << "Service ID not found in PAT" << std::endl;
 		return false;
 	}
+	dmx = open("demux0", O_RDWR|O_NONBLOCK);
+	ProgramMapTables *pmts = DVBTables<ProgramMapTable>::read<ProgramMapTables>(dmx, (*pmtpid).second);
 	::close(dmx);
-	FD pmtDmx(open("demux0", O_RDWR|O_NONBLOCK));
-	ProgramMapTables *pmts = DVBTables<ProgramMapTable>::read<ProgramMapTables>(pmtDmx, (*pmtpid).second);
 	if(!pmts) {
 		delete pats;
 		std::cerr << "No PMT" << std::endl;
 		return false;
 	}
-	::close(pmtDmx);
 
 	Program p(*pmts);
 	p.dump();
@@ -291,8 +291,22 @@ int DVBInterface::openPES(dmx_pes_type_t pes) {
 	return _pesFd[pes] = open("demux0", O_RDWR);
 }
 
+uint16_t DVBInterface::nitPID() const {
+	int dmx = open("demux0", O_RDWR|O_NONBLOCK);
+	ProgramAssociationTables *pats = DVBTables<ProgramAssociationTable>::read<ProgramAssociationTables>(dmx);
+	::close(dmx);
+	if(!pats)
+		return NIT;
+	std::map<uint16_t,uint16_t> PMTPids = pats->pids();
+	if(PMTPids.count(0))
+		return PMTPids[0];
+	return NIT;
+}
+
 std::vector<Transponder*> DVBInterface::scanTransponders() {
-	auto nit = DVBTables<NetworkInformationTable>::read<NetworkInformationTables>(FD(open("demux0", O_RDWR|O_NONBLOCK)));
+	int dmx = open("demux0", O_RDWR|O_NONBLOCK);
+	auto nit = DVBTables<NetworkInformationTable>::read<NetworkInformationTables>(dmx, nitPID());
+	::close(dmx);
 	if(!nit)
 		return std::vector<Transponder*>();
 	return nit->transponders();

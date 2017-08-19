@@ -4,7 +4,6 @@
 #include <vector>
 #include <bitset>
 #include <cmath>
-#include "FD.h"
 #include "Transponder.h"
 #include "Service.h"
 #include "ProgramMapTable.h"
@@ -110,9 +109,10 @@ public:
 	bool timedOut() const { return status().test(TimedOut); }
 	bool needsReInit() const { return status().test(ReInit); }
 	bool resetDiseqcOverload() const;
+	uint16_t nitPID() const;
 	bool tune(Transponder const &t, uint32_t timeout = 0);
 	bool tune(Transponder const * const t, uint32_t timeout = 0) { return tune(*t, timeout); }
-	int frontendFd() { if(_frontendFd < 0) _frontendFd = open("frontend0", O_RDWR); return _frontendFd; }
+	int frontendFd() const { if(_frontendFd < 0) _frontendFd = open("frontend0", O_RDWR); return _frontendFd; }
 	void close();
 	uint32_t currentFrequency() const { return _currentTransponder ? _currentTransponder->frequency() : 0; }
 	/**
@@ -131,7 +131,7 @@ protected:
 	int openPES(dmx_pes_type_t pes);
 protected:
 	std::string _devPath;
-	int _frontendFd;
+	mutable int _frontendFd;
 	int _pesFd[DMX_PES_OTHER+1];
 	dvb_frontend_info _feInfo;
 	Transponder const *_currentTransponder;

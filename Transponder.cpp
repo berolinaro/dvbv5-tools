@@ -1,8 +1,11 @@
-#define DEBUG_TUNING 1
 #include "Transponder.h"
 #include "DVBInterface.h"
 #include "Util.h"
 #include <sstream>
+
+extern "C" {
+#include <unistd.h>
+}
 
 Transponder *Transponder::fromString(std::string const &t) {
 	std::istringstream iss(t);
@@ -317,9 +320,6 @@ bool DVBSTransponder::tune(DVBInterface * const device, uint32_t timeout) const 
 	if(highBand)
 		cmd.msg[3] |= 0b1;
 
-	for(int i=0; i<cmd.msg_len; i++)
-		fprintf(stderr, "%02x ", cmd.msg[i]);
-	fprintf(stderr, "\n");
 	ioctl(device->frontendFd(), FE_DISEQC_SEND_MASTER_CMD, &cmd);
 	usleep(15000);
 

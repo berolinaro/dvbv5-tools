@@ -16,6 +16,7 @@ extern "C" {
 #include <netinet/in.h>
 #include <signal.h>
 #include <poll.h>
+#include <unistd.h>
 }
 
 std::mutex newClientsMutex;
@@ -242,8 +243,9 @@ int main(int argc, char **argv) {
 					cards[0].tune(newChannel.first);
 					currentTransponder = newChannel.first;
 
-					FD patDmx(cards[0].open("demux0", O_RDWR|O_NONBLOCK));
+					int patDmx = cards[0].open("demux0", O_RDWR|O_NONBLOCK);
 					pats = DVBTables<ProgramAssociationTable>::read<ProgramAssociationTables>(patDmx);
+					close(patDmx);
 				} else
 					std::cerr << "Staying on current transponder" << std::endl;
 				if(pats) {
@@ -251,8 +253,9 @@ int main(int argc, char **argv) {
 					if(PMTPids.find(newChannel.second->serviceId()) == PMTPids.end())
 						std::cerr << "new channel invalid" << std::endl;
 					else {
-						FD pmtDmx(cards[0].open("demux0", O_RDWR|O_NONBLOCK));
+						int pmtDmx=cards[0].open("demux0", O_RDWR|O_NONBLOCK);
 						ProgramMapTables *pmts = DVBTables<ProgramMapTable>::read<ProgramMapTables>(pmtDmx, PMTPids[newChannel.second->serviceId()]);
+						close(pmtDmx);
 						if(!pmts)
 							std::cerr << "No PMT for " << newChannel.second->serviceId() << std::endl;
 						else {
