@@ -1,3 +1,5 @@
+#define DEBUG_TUNING 1
+
 #include "DVBInterface.h"
 #include "DVBTable.h"
 #include "ProgramAssociationTable.h"
@@ -15,7 +17,7 @@ extern "C" {
 #include <linux/dvb/dmx.h>
 }
 
-DVBInterface::DVBInterface(int num, std::string const devPath):_frontendFd(-1),_currentTransponder(nullptr) {
+DVBInterface::DVBInterface(int num, std::string const devPath):_frontendFd(-1),_currentTransponder(nullptr),_lnb(nullptr) {
 	_devPath = devPath;
 	if(_devPath[_devPath.length()-1] != '/')
 		_devPath += '/';
@@ -30,6 +32,9 @@ DVBInterface::DVBInterface(int num, std::string const devPath):_frontendFd(-1),_
 	if(fd >= 0) {
 		ioctl(fd, FE_GET_INFO, &_feInfo);
 	}
+
+	if(canQPSK())
+		_lnb = &Lnb::Universal;
 }
 
 std::string DVBInterface::FEC() const {
@@ -97,28 +102,8 @@ bool DVBInterface::resetDiseqcOverload() const {
 
 bool DVBInterface::tune(Transponder const &t, uint32_t timeout) {
 	dtv_properties const *p = t;
-	if(_frontendFd < 0)
-		_frontendFd = open("frontend0", O_RDWR);
-	if(_frontendFd < 0)
-		return false;
 
-#ifdef DEBUG_TUNING
-	std::cerr << "FE_SET_PROPERTY with " << static_cast<int>(p->num) << " arguments" << std::endl;
-	for(int crap=0; crap<p->num; crap++) {
-		if(p->props[crap].cmd == 40)
-			p->props[crap].u.data = 0;
-		std::cerr << "\t" << static_cast<int>(p->props[crap].cmd) << " = " << static_cast<int>(p->props[crap].u.data) << std::endl;
-	}
-#endif
-	if(ioctl(_frontendFd, FE_SET_PROPERTY, p)) {
-		perror("FE_SET_PROPERTY");
-		return false;
-	}
-
-	if(timeout == 0)
-		return true;
-
-	if(Util::waitFor(timeout, [this]() { auto s=status(); return s.test(Signal) && s.test(Lock); })) {
+	if(t.tune(this, timeout)) {
 		_currentTransponder = &t;
 		return true;
 	}

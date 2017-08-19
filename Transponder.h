@@ -1,10 +1,13 @@
 #pragma once
 #include <iostream>
+#include "Lnb.h"
 
 extern "C" {
 #include <linux/dvb/frontend.h>
 #include <stdint.h>
 }
+
+class DVBInterface;
 
 class Transponder {
 public:
@@ -13,6 +16,7 @@ public:
 	virtual operator dtv_properties const *() const { return &_props; }
 	virtual bool operator ==(Transponder const &other) const;
 	virtual std::string toString() const;
+	virtual bool tune(DVBInterface * const i, uint32_t timeout = 0) const;
 protected:
 	Transponder();
 	~Transponder();
@@ -70,3 +74,27 @@ public:
 };
 
 std::ostream &operator <<(std::ostream &os, DVBT2Transponder const &t);
+
+class DVBSTransponder:public Transponder {
+public:
+	DVBSTransponder(uint32_t frequency, uint32_t srate, Lnb::Polarization polarization = Lnb::Horizontal, fe_code_rate fec=FEC_AUTO, fe_spectral_inversion inversion = INVERSION_AUTO);
+	uint32_t symbolRate() const { return getParameter(DTV_SYMBOL_RATE); }
+	fe_code_rate fec() const { return static_cast<fe_code_rate>(getParameter(DTV_INNER_FEC)); }
+	Lnb::Polarization polarization() const { return _polarization; }
+	fe_spectral_inversion inversion() const { return static_cast<fe_spectral_inversion>(getParameter(DTV_INVERSION)); }
+
+	std::string toString() const override;
+	bool tune(DVBInterface * const i, uint32_t timeout = 0) const override;
+protected:
+	Lnb::Polarization	_polarization;
+};
+
+std::ostream &operator <<(std::ostream &os, DVBSTransponder const &t);
+
+class DVBS2Transponder:public DVBSTransponder {
+public:
+	DVBS2Transponder(uint32_t frequency, uint32_t srate, Lnb::Polarization polarization = Lnb::Horizontal, fe_code_rate fec=FEC_AUTO, fe_spectral_inversion inversion = INVERSION_AUTO);
+	std::string toString() const override;
+};
+
+std::ostream &operator <<(std::ostream &os, DVBS2Transponder const &t);

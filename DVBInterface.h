@@ -9,6 +9,7 @@
 #include "Service.h"
 #include "ProgramMapTable.h"
 #include "PIDs.h"
+#include "Lnb.h"
 
 extern "C" {
 #include <linux/dvb/frontend.h>
@@ -111,6 +112,7 @@ public:
 	bool resetDiseqcOverload() const;
 	bool tune(Transponder const &t, uint32_t timeout = 0);
 	bool tune(Transponder const * const t, uint32_t timeout = 0) { return tune(*t, timeout); }
+	int frontendFd() { if(_frontendFd < 0) _frontendFd = open("frontend0", O_RDWR); return _frontendFd; }
 	void close();
 	uint32_t currentFrequency() const { return _currentTransponder ? _currentTransponder->frequency() : 0; }
 	/**
@@ -123,6 +125,8 @@ public:
 	void scan();
 	std::vector<Service> scanTransponder();
 	int open(std::string const &dev, int mode = O_RDONLY) const;
+	Lnb const * const lnb() const { return _lnb; }
+	void setLnb(Lnb const * const lnb) { _lnb = lnb; }
 protected:
 	int openPES(dmx_pes_type_t pes);
 protected:
@@ -131,6 +135,7 @@ protected:
 	int _pesFd[DMX_PES_OTHER+1];
 	dvb_frontend_info _feInfo;
 	Transponder const *_currentTransponder;
+	Lnb const *_lnb;
 };
 
 class DVBInterfaces:public std::vector<DVBInterface> {
