@@ -98,6 +98,10 @@ std::string Transponder::toString() const {
 	return std::string("G") + "\t" + std::to_string(frequency());
 }
 
+std::ostream &operator<<(std::ostream &os, Transponder const &t) {
+	return os << t.toString();
+}
+
 bool Transponder::tune(DVBInterface * const device, uint32_t timeout) const {
 	dtv_properties const *p = *this;
 #ifdef DEBUG_TUNING

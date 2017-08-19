@@ -19,6 +19,7 @@ public:
 	virtual bool tune(DVBInterface * const i, uint32_t timeout = 0) const;
 protected:
 	Transponder();
+public:
 	~Transponder();
 protected:
 	uint32_t getParameter(uint32_t p) const;

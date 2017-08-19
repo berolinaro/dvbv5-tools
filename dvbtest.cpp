@@ -54,20 +54,29 @@ int main(int argc, char **argv) {
 		dumpInfo(c);
 	}
 
-	//Transponder *t = Transponder::fromString("C	594000000	6900000	5	0	2");
-	//DVBCTransponder t(594000000, 6900000, QAM_256, FEC_NONE);
-	//DVBCTransponder t(650000000, 6900000, QAM_256, FEC_NONE);
-	//DVBTTransponder t(666000000, 8000000);
-	//DVBT2Transponder t(506000000, 8000000);
-	DVBS2Transponder t(11493750, 22000000, Lnb::Horizontal, FEC_2_3, INVERSION_AUTO);
-	//DVBSTransponder t(11836500, 27500000, Lnb::Horizontal, FEC_3_4, INVERSION_AUTO);
-	if(!cards[0].tune(t, 5000000)) {
+	Transponder *t;
+	if(cards[0].canQPSK()) {
+		// Satellite interface...
+		if(cards[0].can2GModulation())
+			t = new DVBS2Transponder(11493750, 22000000, Lnb::Horizontal, FEC_2_3, INVERSION_AUTO);
+		else
+			t = new DVBSTransponder(11836500, 27500000, Lnb::Horizontal, FEC_3_4, INVERSION_AUTO);
+	} else {
+		// FIXME can we detect DVB-C vs. DVB-T?
+		//t = new DVBTTransponder(666000000, 8000000);
+		//t = new DVBT2Transponder(506000000, 8000000);
+		t = new DVBCTransponder(594000000, 6900000, QAM_256, FEC_NONE);
+	}
+
+	if(!cards[0].tune(*t, 5000000)) {
 		cout << "Tuning failed" << endl;
 		return 1;
 	} else {
-		std::cerr << "Tuned to " << t << std::endl;
+		std::cerr << "Tuned to " << *t << std::endl;
 	}
 //	cards[0].scan();
 	cards[0].scanTransponders();
 	cards[0].scanTransponder();
+
+	delete t;
 }
