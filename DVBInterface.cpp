@@ -305,10 +305,14 @@ uint16_t DVBInterface::nitPID() const {
 
 std::vector<Transponder*> DVBInterface::scanTransponders() {
 	int dmx = open("demux0", O_RDWR|O_NONBLOCK);
+	std::cerr << "Reading NIT" << std::endl;
 	auto nit = DVBTables<NetworkInformationTable>::read<NetworkInformationTables>(dmx, nitPID());
 	::close(dmx);
-	if(!nit)
+	if(!nit) {
+		std::cerr << "No NIT" << std::endl;
 		return std::vector<Transponder*>();
+	}
+	std::cerr << "Looking at transponders" << std::endl;
 	return nit->transponders();
 }
 

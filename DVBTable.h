@@ -104,6 +104,10 @@ public:
 	template <class DT> static DT* read(int fd, uint16_t pid=DT::TableType::tablePid, uint8_t tableFilter=DT::TableType::tableFilter, uint8_t tableMask=DT::TableType::tableMask) {
 		dmx_sct_filter_params f;
 		memset(&f, 0, sizeof(f));
+		if(pid == 0x10) {
+			std::cerr << "Setting up to read NIT" << std::endl;
+			std::cerr << "PID = " << pid << " filter = " << static_cast<int>(tableFilter) << " mask = " << static_cast<int>(tableMask) << std::endl;
+		}
 		f.pid = pid;
 		f.filter.filter[0] = tableFilter;
 		f.filter.mask[0] = tableMask;
@@ -114,19 +118,24 @@ public:
 		while(!ret->complete()) {
 			DVBTable *t = DVBTable::read(fd);
 			if(!t) {
+				std::cerr << "timeout" << std::endl;
 				// timeout
 				ioctl(fd, DMX_STOP);
 				return nullptr;
 			}
+			std::cerr << "read" << std::endl;
 			typename DT::TableType *d=dynamic_cast<typename DT::TableType*>(t);
 			if(d && d->tableId() == Invalid) { // Timeout -- probably the table just doesn't exist
+				std::cerr << "Invalid tableId" << std::endl;
 				break;
 			}
+			std::cerr << "valid, table id " << static_cast<int>(d->tableId()) << std::endl;
 			if(d)
 				ret->add(d);
 			else
 				delete d;
 		}
+		std::cerr << "DMX_STOP" << std::endl;
 		ioctl(fd, DMX_STOP);
 		return ret;
 	}

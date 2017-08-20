@@ -5,6 +5,7 @@
 #include "NetworkInformationTable.h"
 #include "DVBDescriptor.h"
 #include "CableDeliverySystemDescriptor.h"
+#include "SatelliteDeliverySystemDescriptor.h"
 #include "TerrestrialDeliverySystemDescriptor.h"
 #include "Util.h"
 
@@ -20,30 +21,43 @@ std::vector<Transponder*> NetworkInformationTable::transponders() const {
 	uint16_t transportStreamLoopLength = ((pos[0]&0xf)<<8)|pos[1];
 	pos += 2;
 	end = pos + transportStreamLoopLength;
+	std::cerr << "Looking at descriptors" << std::endl;
 	while(pos<end) {
+		std::cerr << static_cast<int>(pos-_data) << "<" << static_cast<int>(end-_data) << std::endl;
 		uint16_t transportStreamId = (pos[0]<<8)|pos[1];
 		uint16_t originalNetworkId = (pos[2]<<8)|pos[3];
 		uint16_t transportDescriptorsLength = ((pos[4]&0xf)<<8)|pos[5];
 		pos += 6;
 		unsigned char *tsEnd = pos + transportDescriptorsLength;
 		while(pos < tsEnd) {
+			std::cerr << "Getting next descriptor" << std::endl;
 			DVBDescriptor *d = DVBDescriptor::get(pos);
+			std::cerr << "Got descriptor" << std::endl;
 			if(CableDeliverySystemDescriptor *c = dynamic_cast<CableDeliverySystemDescriptor*>(d)) {
 				ret.push_back(c->transponder());
 			} else if(TerrestrialDeliverySystemDescriptor *t = dynamic_cast<TerrestrialDeliverySystemDescriptor*>(d)) {
 				ret.push_back(t->transponder());
+			} else if(SatelliteDeliverySystemDescriptor *t = dynamic_cast<SatelliteDeliverySystemDescriptor*>(d)) {
+				std::cerr << "It's a satellite descriptor" << std::endl;
+				t->dump();
+				ret.push_back(t->transponder());
 			}
 		}
+		std::cerr << "Ready with transport descriptors" << std::endl;
 	}
+	std::cerr << "READY" << std::endl;
+	std::cerr << "Returning list of " << ret.size() << " transponders" << std::endl;
 	return ret;
 }
 
 std::vector<Transponder*> NetworkInformationTables::transponders() const {
 	std::vector<Transponder*> ret;
+	std::cerr << "Getting transponders from multiple NIT segments" << std::endl;
 	for(auto const &a: *this) {
 		std::vector<Transponder*> tp = a->transponders();
 		ret.insert(ret.end(), tp.begin(), tp.end());
 	}
+	std::cerr << "Done merging segments, found " << ret.size() << " transponders." << std::endl;
 	return ret;
 }
 

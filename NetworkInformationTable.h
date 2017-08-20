@@ -16,7 +16,7 @@ public:
 	std::vector<Transponder*> transponders() const;
 	static constexpr uint8_t tablePid = NIT;
 	static constexpr uint8_t tableFilter = NetworkInformation;
-	static constexpr uint8_t tableMask = 0x00;//0xff;
+	static constexpr uint8_t tableMask = 0xff;
 protected:
 	mutable std::map<uint16_t,uint16_t> _pids;
 };
