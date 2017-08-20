@@ -35,6 +35,13 @@ namespace Util {
 	uint32_t crc32(unsigned char const * const data, size_t size, uint32_t previous = 0xffffffff);
 
 	/**
+	 * Get a UTF-8 encoded std::string from a DVB encoded string
+	 * according to ETSI EN 300 468 V1.15.1 Annex A
+	 */
+	std::string StringFromDVB(char const * const c);
+	static std::string StringFromDVB(unsigned char const * const c) { return StringFromDVB(reinterpret_cast<char const * const>(c)); }
+
+	/**
 	 * Helper that saves and restores std::iomanip format flags
 	 * When manipulating iostream flags (std::hex, ...), simply construct a
 	 * SaveIOState object earlier - flags will be restored as the object

@@ -28,35 +28,12 @@ public:
 		       (serviceType() == ACRadio);
 	}
 	std::string provider() const {
-		if(_data[1] == 0)
-			return std::string();
-		char provName[_data[1]+1];
-		memcpy(provName, _data+2, _data[1]);
-		provName[_data[1]]=0;
-		return provName;
+		return Util::StringFromDVB(_data+1);
 	}
 	std::string name() const {
 		assert(_data);
 		unsigned char const *pos = _data + _data[1] + 2;
-		uint8_t length=pos[0];
-		if(length == 0)
-			return std::string();
-		char name[length+1];
-		memcpy(name, pos+1, length);
-		if(name[0] < 0x20) {
-			// ETSI EN 300 468 V1.15.1 Annex A: First byte can,
-			// but doesn't have to, be a character set indicator.
-			// should do some conversion at some point.
-			// 0x1f is a special value indicating there's another
-			// encoding byte in the second byte.
-			if(name[0] == 0x1f) {
-				length -= 2;
-				memmove(name, name+2, length);
-			} else
-				memmove(name, name+1, --length);
-		}
-		name[length]=0;
-		return name;
+		return Util::StringFromDVB(pos);
 	}
 	void dump(std::ostream &where=std::cerr, std::string const &indent="") const override {
 		where << indent << "Service type: ";

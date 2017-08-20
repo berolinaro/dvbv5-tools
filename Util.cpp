@@ -1,6 +1,7 @@
 #include "Util.h"
 #include <iostream>
 #include <iomanip>
+#include <unicode/ucnv.h>
 
 extern "C" {
 #include <ctype.h>
@@ -137,5 +138,42 @@ namespace Util {
 			crc = (crc << 8) ^ CRC32Table[((crc >> 24) ^ (data[i] & 0xff)) & 0xff];
 		}
 		return crc;
+	}
+
+	std::string StringFromDVB(char const * const c) {
+		if(!c || !*c)
+			return std::string();
+		char const *pos=c+1;
+		uint8_t length=c[0];
+		std::string charset="iso-8859-1";
+		if(*pos < 0x20) {
+			if(*pos <= 0x0b)
+				// 0x08 is a bit of an exception because 8859-12 was
+				// never published - but 0x08 is reserved for future
+				// use, so unless and until it becomes something else,
+				// let's assume it's 8859-12 draft
+				charset = "iso-8859-" + std::to_string(static_cast<int>(*pos) + 4);
+			else if(*pos == 0x10) {
+				// FIXME we aren't handling "reserved for future use"
+				// cases here (Annex A table A.4)
+				pos += 2;
+				length -= 2;
+				charset = "iso-8859-" + std::to_string(*pos);
+			}
+			else if(*pos == 0x11)
+				charset = "iso-10646";
+			else if(*pos == 0x12)
+				charset = "EUC-KR"; // FIXME standard says KSX1001-2004, but ICU doesn't know that one. Is EUC-KR close enough?
+			else if(*pos == 0x13)
+				charset = "gb2312-1980";
+			else if(*pos == 0x14)
+				charset = "Big5";
+			else if(*pos == 0x15)
+				charset = "UTF-8";
+			pos++;
+			length--;
+		}
+		std::string result;
+		return UnicodeString(pos, static_cast<int32_t>(length), charset.c_str()).toUTF8String<std::string>(result);
 	}
 }
