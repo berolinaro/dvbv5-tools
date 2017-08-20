@@ -87,7 +87,8 @@ std::vector<Service> ServiceDescriptionTable::services() const {
 std::vector<Service> ServiceDescriptionTables::services() const {
 	std::vector<Service> ret;
 	for(auto const &sdt: *this) {
-		assert(sdt);
+		if(!sdt) // FIXME how can this happen? (It has been seen happening...)
+			continue;
 		sdt->dump(std::cerr);
 		std::vector<Service> const s=sdt->services();
 		ret.insert(ret.end(), s.begin(), s.end());
