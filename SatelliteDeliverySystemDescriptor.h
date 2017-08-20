@@ -79,6 +79,9 @@ public:
 		return Lnb::Horizontal; // not reachable
 	}
 	fe_rolloff rolloff() const {
+		if(!isS2())
+			return ROLLOFF_AUTO;
+
 		switch((_data[6]&0b00011000)>>3) {
 		case 0b00:
 			return ROLLOFF_35;
