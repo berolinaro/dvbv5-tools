@@ -28,6 +28,8 @@ public:
 		       (serviceType() == ACRadio);
 	}
 	std::string provider() const {
+		if(_data[1] == 0)
+			return std::string();
 		char provName[_data[1]+1];
 		memcpy(provName, _data+2, _data[1]);
 		provName[_data[1]]=0;
@@ -37,6 +39,8 @@ public:
 		assert(_data);
 		unsigned char const *pos = _data + _data[1] + 2;
 		uint8_t length=pos[0];
+		if(length == 0)
+			return std::string();
 		char name[length+1];
 		memcpy(name, pos+1, length);
 		if(name[0] < 0x20) {
