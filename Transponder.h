@@ -94,8 +94,10 @@ std::ostream &operator <<(std::ostream &os, DVBSTransponder const &t);
 
 class DVBS2Transponder:public DVBSTransponder {
 public:
-	DVBS2Transponder(uint32_t frequency, uint32_t srate, Lnb::Polarization polarization = Lnb::Horizontal, fe_code_rate fec=FEC_AUTO, fe_spectral_inversion inversion = INVERSION_AUTO);
+	DVBS2Transponder(uint32_t frequency, uint32_t srate, Lnb::Polarization polarization = Lnb::Horizontal, fe_code_rate fec=FEC_AUTO, fe_spectral_inversion inversion = INVERSION_AUTO, fe_modulation modulation = QPSK, fe_rolloff rolloff = ROLLOFF_AUTO);
 	std::string toString() const override;
+	fe_modulation modulation() const { return static_cast<fe_modulation>(getParameter(DTV_ROLLOFF)); }
+	fe_rolloff rolloff() const { return static_cast<fe_rolloff>(getParameter(DTV_ROLLOFF)); }
 };
 
 std::ostream &operator <<(std::ostream &os, DVBS2Transponder const &t);

@@ -2,6 +2,7 @@
 #include "DVBDescriptor.h"
 #include "Transponder.h"
 #include "Util.h"
+#include <cmath>
 extern "C" {
 #include <linux/dvb/frontend.h>
 }
@@ -24,11 +25,12 @@ public:
 			 ((_data[3]&0b11110000)>>4)*10       +
 			 ((_data[3]&0b1111))) * 10;
 	}
-	uint16_t orbitalPosition() const {
+	float orbitalPosition() const {
 		return  (((_data[4]&0b11110000)>>4)*1000 +
 			 ((_data[4]&0b1111))       *100  +
 			 ((_data[5]&0b11110000)>>4)*10   +
-			 ((_data[5]&0b1111)));
+			 ((_data[5]&0b1111))) *
+			 ((_data[6]&0b10000000) ? .1: -.1);
 	}
 	uint32_t symbolRate() const {
 		return	(((_data[7]& 0b11110000)>>4) *1000000 +
@@ -121,6 +123,7 @@ public:
 			where << indent << "DVB-S2 transponder:" << std::endl;
 		else
 			where << indent << "DVB-S transponder:" << std::endl;
+		where	<< indent << "\t" << "Orbital position: " << fabs(orbitalPosition()) << " " << ((orbitalPosition() > 0.0) ? "E" : "W")  << std::endl;
 		where	<< indent << "\t" << "Frequency: " << frequency() << std::endl
 			<< indent << "\t" << "FEC: " << static_cast<int>(fec()) << " was " << static_cast<int>(_data[10]&0xf) << std::endl
 			<< indent << "\t" << "Modulation: " << static_cast<int>(modulation()) << std::endl

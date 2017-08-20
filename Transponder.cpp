@@ -67,9 +67,13 @@ Transponder *Transponder::fromString(std::string const &t) {
 		fe_code_rate fec = static_cast<fe_code_rate>(std::stoi(part));
 		std::getline(iss, part, '\t');
 		fe_spectral_inversion inv = static_cast<fe_spectral_inversion>(std::stoi(part));
-		if(S2)
-			return new DVBS2Transponder(freq, srate, polar, fec, inv);
-		else
+		if(S2) {
+			std::getline(iss, part, '\t');
+			fe_modulation mod = static_cast<fe_modulation>(std::stoi(part));
+			std::getline(iss, part, '\t');
+			fe_rolloff ro = static_cast<fe_rolloff>(std::stoi(part));
+			return new DVBS2Transponder(freq, srate, polar, fec, inv, mod, ro);
+		} else
 			return new DVBSTransponder(freq, srate, polar, fec, inv);
 	}
 	return nullptr;
@@ -340,22 +344,22 @@ std::ostream &operator<<(std::ostream &os, DVBSTransponder const &t) {
 	return os << t.toString();
 }
 
-DVBS2Transponder::DVBS2Transponder(uint32_t frequency, uint32_t srate, Lnb::Polarization polarization, fe_code_rate fec, fe_spectral_inversion inversion):DVBSTransponder(frequency, srate, polarization, fec, inversion) {
+DVBS2Transponder::DVBS2Transponder(uint32_t frequency, uint32_t srate, Lnb::Polarization polarization, fe_code_rate fec, fe_spectral_inversion inversion, fe_modulation modulation, fe_rolloff rolloff):DVBSTransponder(frequency, srate, polarization, fec, inversion) {
 	for(int i=0; i<_props.num; i++)
 		if(_props.props[i].cmd == DTV_DELIVERY_SYSTEM)
 			_props.props[i].u.data = SYS_DVBS2;
 	_props.props[_props.num].cmd = DTV_MODULATION;
-	_props.props[_props.num++].u.data = QPSK;
+	_props.props[_props.num++].u.data = modulation;
 	_props.props[_props.num].cmd = DTV_PILOT;
-	_props.props[_props.num++].u.data = -1;
+	_props.props[_props.num++].u.data = -1; // FIXME can this take any other value?
 	_props.props[_props.num].cmd = DTV_ROLLOFF;
-	_props.props[_props.num++].u.data = 3;
+	_props.props[_props.num++].u.data = rolloff;
 	_props.props[_props.num].cmd = DTV_STREAM_ID;
-	_props.props[_props.num++].u.data = 0;
+	_props.props[_props.num++].u.data = 0; // FIXME can this take any other value?
 }
 
 std::string DVBS2Transponder::toString() const {
-	return std::string("S2") + "\t" + std::to_string(frequency()) + "\t" + std::to_string(symbolRate()) + "\t" + std::to_string(polarization()) + "\t" + std::to_string(fec()) + "\t" + std::to_string(inversion());
+	return std::string("S2") + "\t" + std::to_string(frequency()) + "\t" + std::to_string(symbolRate()) + "\t" + std::to_string(polarization()) + "\t" + std::to_string(fec()) + "\t" + std::to_string(inversion()) + "\t" + std::to_string(modulation()) + "\t" + std::to_string(rolloff());
 }
 
 std::ostream &operator<<(std::ostream &os, DVBS2Transponder const &t) {
