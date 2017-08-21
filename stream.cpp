@@ -227,11 +227,15 @@ int main(int argc, char **argv) {
 			std::lock_guard<std::mutex> guard(newClientsMutex);
 			for(auto c: newClients) {
 				std::cerr << "Looking at new requests" << std::endl;
+				int const newFd = c.first;
 				auto newChannel = channels.find(c.second);
 				if(newChannel.first)
 					std::cerr << "Valid channel " << c.second << std::endl;
-				else
+				else {
 					std::cerr << "Invalid channel " << c.second << std::endl;
+					close(newFd);
+					continue;
+				}
 
 				if(!currentTransponder || (*currentTransponder != *newChannel.first)) {
 					std::cerr << "Switching transponder" << std::endl;
@@ -262,19 +266,21 @@ int main(int argc, char **argv) {
 							Program p(*pmts);
 							for(Stream s: p.streams()) {
 								if(watchers.find(s.pid()) == watchers.end()) {
+									if(s.pid() == 1)
+										continue;
 									if(cards[0].addPES(s.type(), s.pid(), true)) {
 										std::set<int> w;
-										w.insert(w.end(), c.first);
+										w.insert(w.end(), newFd);
 										watchers.insert_or_assign(s.pid(), w);
 									}
 								} else
-									watchers[s.pid()].insert(watchers[s.pid()].end(), c.first);
+									watchers[s.pid()].insert(watchers[s.pid()].end(), newFd);
 							}
 						}
 					}
 				} else
 					std::cerr << "No PAT" << std::endl;
-				p[nfds].fd = c.first;
+				p[nfds].fd = newFd;
 				p[nfds++].events = POLLOUT|POLLHUP;
 			}
 			newClients.clear();
