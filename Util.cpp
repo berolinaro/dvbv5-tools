@@ -1,7 +1,7 @@
 #include "Util.h"
 #include <iostream>
 #include <iomanip>
-#include <unicode/ucnv.h>
+#include <unicode/unistr.h>
 
 extern "C" {
 #include <ctype.h>
