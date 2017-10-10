@@ -78,7 +78,7 @@ static constexpr uint32_t CRC32Table[] = {
 
 namespace Util {
 
-	bool waitFor(uint32_t timeout, std::function<bool ()> condition, timespec delay) {
+	bool waitFor(uint32_t timeout, std::function<bool ()> const &condition, timespec delay) {
 		timeval tv, end;
 		gettimeofday(&end, nullptr);
 		end.tv_usec += timeout;

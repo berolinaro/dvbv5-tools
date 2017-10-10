@@ -6,7 +6,7 @@
 #include "Util.h"
 
 std::map<uint16_t,uint16_t> ProgramAssociationTable::pids() const {
-	if(_pids.size())
+	if(!_pids.empty())
 		return _pids;
 
 	std::cerr << "PAT:" << std::endl;
@@ -28,7 +28,7 @@ void ProgramAssociationTable::dump(std::ostream &where, std::string const &inden
 	DVBTable::dump(where, indent);
 	std::map<uint16_t,uint16_t> PIDs=pids();
 	where << std::hex << std::setfill('0');
-	for(std::pair<uint16_t,uint16_t> const &p: PIDs) {
+	for(auto const &p: PIDs) {
 		where << indent << "Program number " << std::setw(4) << p.first << " PID " << std::setw(4) << p.second << std::endl;
 	}
 }
@@ -46,7 +46,7 @@ void ProgramAssociationTables::dump(std::ostream &where, std::string const &inde
 	Util::SaveIOState isr(where);
 	std::map<uint16_t,uint16_t> PIDs=pids();
 	where << std::hex << std::setfill('0');
-	for(std::pair<uint16_t,uint16_t> const &p: PIDs) {
+	for(auto const &p: PIDs) {
 		where << indent << "Program number " << std::setw(4) << p.first << " PID " << std::setw(4) << p.second << std::endl;
 	}
 }

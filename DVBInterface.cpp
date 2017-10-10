@@ -17,7 +17,7 @@ extern "C" {
 #include <linux/dvb/dmx.h>
 }
 
-DVBInterface::DVBInterface(int num, std::string const devPath):_frontendFd(-1),_currentTransponder(nullptr),_lnb(nullptr) {
+DVBInterface::DVBInterface(int num, std::string const &devPath):_frontendFd(-1),_currentTransponder(nullptr),_lnb(nullptr) {
 	_devPath = devPath;
 	if(_devPath[_devPath.length()-1] != '/')
 		_devPath += '/';
@@ -60,7 +60,7 @@ std::string DVBInterface::FEC() const {
 		ret += " Auto";
 	if(canTurboFEC())
 		ret += " TurboFEC";
-	return ret.size() ? ret.substr(1) : ret;
+	return ret.empty() ? ret : ret.substr(1);
 }
 
 std::string DVBInterface::QAM() const {
@@ -118,11 +118,6 @@ void DVBInterface::close() {
 		}
 	}
 }
-
-#include <iostream>
-using namespace std;
-#include <errno.h>
-#include <cassert>
 
 std::vector<Service> DVBInterface::scanTransponder() {
 	int dmx = open("demux0", O_RDWR|O_NONBLOCK);
@@ -209,7 +204,7 @@ bool DVBInterface::setup(Service const &s) {
 	p.dump();
 
 	addPES(Stream::PCR, p.pcrPid());
-	for(auto s: p.streams())
+	for(auto const &s: p.streams())
 		addPES(s.type(), s.pid());
 	return true;
 }

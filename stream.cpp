@@ -14,7 +14,7 @@ extern "C" {
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <signal.h>
+#include <csignal>
 #include <poll.h>
 #include <unistd.h>
 }

@@ -39,7 +39,7 @@ ChannelList::ChannelList(std::string const &filename):std::map<Transponder*,std:
 Transponder *ChannelList::transponder(std::string const &name, std::string const &providerName) const {
 	for(auto const &tp: *this) {
 		for(auto const &s: tp.second) {
-			if(s->name() == name && (providerName.size()==0 || providerName == s->providerName()))
+			if(s->name() == name && (providerName.empty() || providerName == s->providerName()))
 				return tp.first;
 		}
 	}
@@ -49,7 +49,7 @@ Transponder *ChannelList::transponder(std::string const &name, std::string const
 Service *ChannelList::service(std::string const &name, std::string const &providerName) const {
 	for(auto const &tp: *this) {
 		for(auto const &s: tp.second) {
-			if(s->name() == name && (providerName.size()==0 || providerName == s->providerName()))
+			if(s->name() == name && (providerName.empty() || providerName == s->providerName()))
 				return s;
 		}
 	}
@@ -59,9 +59,9 @@ Service *ChannelList::service(std::string const &name, std::string const &provid
 std::pair<Transponder const *,Service const *> ChannelList::find(std::string const &name, std::string const &providerName) const {
 	for(auto const &tp: *this) {
 		for(auto const &s: tp.second) {
-			if(s->name() == name && (providerName.size()==0 || providerName == s->providerName()))
-				return std::make_pair<Transponder const *,Service const *>(tp.first,s);
+			if(s->name() == name && (providerName.empty() || providerName == s->providerName()))
+				return std::pair<Transponder const *,Service const *>(tp.first,s);
 		}
 	}
-	return std::make_pair<Transponder const *,Service const *>(nullptr, nullptr);
+	return std::pair<Transponder const *,Service const *>(nullptr, nullptr);
 }

@@ -205,7 +205,7 @@ void Program::dump(std::ostream &where, std::string const &indent) const {
 	for(auto const &d: _descriptors) {
 		std::cerr << "Dumping descriptor" << std::endl;
 		std::cerr << "Type " << static_cast<int>(d->tag()) << std::endl;
-		std::cerr << abi::__cxa_demangle(typeid(d).name(), 0, 0, 0) << std::endl;
+		std::cerr << abi::__cxa_demangle(typeid(d).name(), nullptr, nullptr, nullptr) << std::endl;
 		d->dump(where, indent+"\t");
 		std::cerr << "Done dumping" << std::endl;
 	}

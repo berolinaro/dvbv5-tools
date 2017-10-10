@@ -8,7 +8,7 @@ int main(int argc, char **argv) {
 //	DVBT2Transponder initial(506000000, 8000000);
 	DVBSTransponder initial(12551500, 22000000, Lnb::Vertical, FEC_5_6, INVERSION_AUTO);
 	DVBInterfaces cards = DVBInterfaces::all();
-	if(cards.size() == 0) {
+	if(cards.empty()) {
 		std::cerr << "No DVB interfaces found" << std::endl;
 		return 1;
 	}
@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 			std::cerr << "Can't tune to initial transponder " << initial.frequency() << std::endl;
 		std::vector<Transponder*> tp=c.scanTransponders();
 		// If we didn't get an NIT, the initial transponder is better than nothing...
-		if(tp.size() == 0) {
+		if(tp.empty()) {
 			std::cerr << "No NIT on initial transponder" << std::endl;
 			tp.insert(tp.end(), &initial);
 		}

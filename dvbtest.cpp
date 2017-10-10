@@ -13,12 +13,12 @@ static void dumpInfo(DVBInterface &c) {
 	if(c.canAutoInversion())
 		cout << "AutoInversion supported" << endl;
 	std::string FEC = c.FEC();
-	if(FEC.size())
+	if(!FEC.empty())
 		cout << "FEC types supported: " << FEC << endl;
 	if(c.canQPSK())
 		cout << "QPSK modulation supported" << endl;
 	std::string QAM = c.QAM();
-	if(QAM.size())
+	if(!QAM.empty())
 		cout << "QAM modulations supported: " << QAM << endl;
 	if(c.canTransmissionModeAuto())
 		cout << "Transmission mode autodetection supported." << endl;
@@ -44,7 +44,7 @@ static void dumpInfo(DVBInterface &c) {
 
 int main(int argc, char **argv) {
 	DVBInterfaces cards = DVBInterfaces::all();
-	if(cards.size() == 0) {
+	if(cards.empty()) {
 		cerr << "No DVB interfaces found" << endl;
 		return 1;
 	}

@@ -18,7 +18,7 @@ extern "C" {
 
 class DVBInterface {
 public:
-	DVBInterface(int num=0, std::string const devPath="/dev/dvb/");
+	DVBInterface(int num=0, std::string const &devPath="/dev/dvb/");
 	bool exists() const { return *_feInfo.name; }
 	std::string name() const { return _feInfo.name; }
 	uint32_t minFrequency() const { return _feInfo.frequency_min; }
