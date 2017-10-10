@@ -99,8 +99,6 @@ bool DVBInterface::resetDiseqcOverload() const {
 }
 
 bool DVBInterface::tune(Transponder const &t, uint32_t timeout) {
-	dtv_properties const *p = t;
-
 	if(t.tune(this, timeout)) {
 		_currentTransponder = &t;
 		return true;
